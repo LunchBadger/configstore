@@ -1,0 +1,29 @@
+{
+  "name": "Repo",
+  "base": "PersistedModel",
+  "idInjection": false,
+  "options": {
+    "validateUpsert": true
+  },
+  "properties": {
+    "id": {
+      "type": "string",
+      "id": true,
+      "required": true
+    }
+  },
+  "validations": [],
+  "relations": {
+    "environments": {
+      "type": "hasMany",
+      "model": "Environment",
+      "foreignKey": ""
+    }
+  },
+  "acls": [],
+  "methods": {},
+  "strict": "validate",
+  "remoting": {
+    "normalizeHttpPath": true
+  }
+}

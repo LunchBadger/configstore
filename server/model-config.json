@@ -12,5 +12,13 @@
       "../common/mixins",
       "./mixins"
     ]
+  },
+  "Repo": {
+    "dataSource": null,
+    "public": true
+  },
+  "Environment": {
+    "dataSource": null,
+    "public": false
   }
 }
