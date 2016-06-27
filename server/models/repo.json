@@ -1,6 +1,6 @@
 {
   "name": "Repo",
-  "base": "PersistedModel",
+  "base": "Model",
   "idInjection": false,
   "options": {
     "validateUpsert": true
@@ -13,13 +13,7 @@
     }
   },
   "validations": [],
-  "relations": {
-    "environments": {
-      "type": "hasMany",
-      "model": "Environment",
-      "foreignKey": ""
-    }
-  },
+  "relations": {},
   "acls": [],
   "methods": {},
   "strict": "validate",
