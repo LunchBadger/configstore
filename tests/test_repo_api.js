@@ -68,30 +68,3 @@ describe('Repository API', function() {
   });
 
 });
-
-xdescribe('Environment API', function() {
-  before(function() {
-    // Create a repository
-  });
-
-  xit('should be able to create an environment', function() {
-
-  });
-  xit('should be able to delete an environment', function() {
-
-  });
-  xit('should be able to download a file', function() {
-
-  });
-  xit('should be able to update a file', function() {
-
-  });
-  xit('should be able to get the current environment revision',
-    function() {
-
-    });
-  xit('should change the environment revision when a file is updated',
-    function() {
-
-    });
-});
