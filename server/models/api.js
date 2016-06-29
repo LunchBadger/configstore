@@ -45,8 +45,13 @@ module.exports = function(Api) {
     // ends up as the value of the ETag header. Setting a header based on the
     // response value only seems to work when calling the cb, not through the
     // Promise.
+    if (Object.keys(data).length < 1) {
+      cb(error.badRequestError('Must specify some data'));
+      return;
+    }
+
     this._getRepo(repoId)
-      .then((repo) => {
+      .then(repo => {
         return repo.updateBranchFiles(branchId, parentRevision, data);
       })
       .then(res => {
@@ -54,8 +59,34 @@ module.exports = function(Api) {
       })
       .catch(gitrepo.OptimisticConcurrencyError, (err) => {
         cb(error.preconditionFailedError('Please refresh'));
+      })
+      .catch(err => {
+        cb(err);
       });
   };
+
+  Api.downloadFile = function(repoId, branchId, fileName, cb) {
+    this
+      ._getRepo(repoId)
+      .then(repo => {
+        return repo.getFile(branchId, fileName);
+      })
+      .then(([content, chksum]) => {
+        cb(null, content, chksum, 'application/octet-stream');
+      })
+      .catch(gitrepo.FileNotFound, err => {
+        cb(error.notFoundError(`File ${fileName} does not exist`));
+      })
+      .catch(err => {
+        cb(err);
+      });
+  };
+
+  Api.afterRemote('downloadFile', (ctx, result, next) => {
+    // https://github.com/strongloop/loopback/issues/1945. This is still a bug,
+    // in my opinion, despite what it says in that ticket.
+    ctx.res.end(ctx.result);
+  });
 
   Api.testMethod = function(obj) {
     return this._getRepo('new-repo')
@@ -135,17 +166,42 @@ module.exports = function(Api) {
       }
     ],
     returns: [
+      {arg: 'ETag', type: 'string', http: {target: 'header'}},
+      {arg: 'data', type: 'object', root: true}
+    ],
+    http: {verb: 'patch', path: '/repos/:repoId/branches/:branchId/files'}
+  });
+
+  Api.remoteMethod('downloadFile', {
+    description: 'Retrieve a file from the given branch',
+    accepts: [
       {
-        arg: 'ETag',
+        arg: 'repoId',
         type: 'string',
-        http: {target: 'header'}
+        description: 'Repo id',
+        required: true
       },
       {
-        arg: 'data',
-        type: 'object',
-        root: true
+        arg: 'branchId',
+        type: 'string',
+        description: 'Branch id',
+        required: true
+      },
+      {
+        arg: 'fileName',
+        type: 'string',
+        description: 'File name',
+        required: true
       }
     ],
-    http: {verb: 'post', path: '/repos/:repoId/branches/:branchId/files'}
+    returns: [
+      {arg: 'data', type: 'string', root: true},
+      {arg: 'ETag', type: 'string', http: {target: 'header'}},
+      {arg: 'Content-type', type: 'string', http: {target: 'header'}}
+    ],
+    http: {
+      verb: 'get',
+      path: '/repos/:repoId/branches/:branchId/files/:fileName(*)'
+    }
   });
 };

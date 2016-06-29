@@ -13,31 +13,42 @@ let debug = require('debug')('configstore:git');
 class GitRepoError extends CustomError {}
 class RepoDoesNotExistError extends GitRepoError {
   constructor(repoName) {
-    super('Repo "' + repoName + '" does not exist');
+    super('Repo "${repoName}" does not exist');
     this.repoName = repoName;
   }
 }
 
 class OperationInProgress extends GitRepoError {
   constructor(repoName) {
-    super('Repo "' + repoName + '" already has an operation in progress');
+    super('Repo "${repoName}" already has an operation in progress');
     this.repoName = repoName;
   }
 }
 
 class OptimisticConcurrencyError extends GitRepoError {
   constructor(repoName, branchName) {
-    super('Branch "' + branchName + '"" in repo "' + repoName +
-      '" has changed. Please refresh and try again.');
+    super(`Branch "${branchName}" in repo "${repoName}" has changed.` +
+          'Please refresh and try again');
     this.repoName = repoName;
+    this.branchName = branchName;
   }
 }
 
 class InvalidBranchError extends GitRepoError {
   constructor(repoName, branchName) {
-    super('Branch "' + branchName + '"" in repo "' + repoName +
-      '" does not exist.');
+    super(`Branch "${branchName}" in repo "${repoName}" does not exist`);
     this.repoName = repoName;
+    this.branchName = branchName;
+  }
+}
+
+class FileNotFound extends GitRepoError {
+  constructor(repoName, branchName, fileName) {
+    super(`File "${fileName}" on branch "${branchName}" ` +
+          `in repo "${repoName}" does not exist`);
+    this.repoName = repoName;
+    this.branchName = branchName;
+    this.fileName = fileName;
   }
 }
 
@@ -167,6 +178,7 @@ class GitRepo {
     let repo = null;
     let index = null;
     let parents = [];
+    let initialCommit = false;
 
     let now = new Date();
     let author = git.Signature.create('LunchBadger', 'admin@lunchbadger.com',
@@ -187,12 +199,15 @@ class GitRepo {
             .then(ref => {
               return ref
                 .resolve()
-                .then(() => [ref, false])
-                .catch(() => [ref, true]);
+                .then(() => ref)
+                .catch(() => {
+                  initialCommit = true;
+                  return ref;
+                });
             });
         })
         // Check out the given branch and return the latest commit or null
-        .then(([ref, initialCommit]) => {
+        .then(ref => {
           if (initialCommit) {
             debug(`Initial commit, changing HEAD ref to ${branchName}`);
             return ref
@@ -243,7 +258,7 @@ class GitRepo {
         // Update the index
         .then(() => repo.getStatus({}))
         .then(changes => {
-          if (changes.length > 0) {
+          if (initialCommit || changes.length > 0) {
             debug(`Changes detected (${changes.length} files), committing`);
             return repo
               .refreshIndex()
@@ -259,7 +274,7 @@ class GitRepo {
                   commitMessage, oid, parents);
               })
               .then(oid => {
-                index
+                return index
                   .clear()
                   .then(() => oid.tostrS());
               });
@@ -275,18 +290,42 @@ class GitRepo {
     });
   }
 
-  // branchExists(branchName) {
-  //   return this
-  //     .repo()
-  //     .then(repo => repo.getBranchCommit(branchName))
-  //     .then(() => true)
-  //     .catch((err) => {
-  //       if (err.toString().indexOf('no reference found') >= 0) {
-  //         return false;
-  //       }
-  //       throw err;
-  //     });
-  // }
+  getFile(branchName, fileName) {
+    let repo = null;
+    let chksum = null;
+
+    return this
+      .repo()
+      .then(repo_ => {
+        repo = repo_;
+        return repo.getBranchCommit(branchName);
+      })
+      .then(commit => {
+        chksum = commit.id().tostrS();
+        return commit.getTree();
+      })
+      .then(tree => tree.getEntry(fileName))
+      .then(entry => {
+        if (!entry.isBlob()) {
+          throw Error(`Path ${fileName} is not a file`);
+        }
+        return entry.getBlob();
+      })
+      .then(blob => {
+        if (blob.rawsize() > (1024 * 1024)) {
+          throw Error(`File ${fileName} is too big`);
+        }
+        return [blob.toString(), chksum];
+      })
+      .catch(err => {
+        let msg = err.toString();
+        if (msg.indexOf('does not exist in the given tree') >= 0) {
+          throw new FileNotFound(this.name, branchName, fileName);
+        } else {
+          throw err;
+        }
+      });
+  }
 
   testMethod(obj) {
   }
@@ -298,6 +337,7 @@ module.exports = {
   RepoDoesNotExistError,
   OperationInProgress,
   OptimisticConcurrencyError,
-  InvalidBranchError
+  InvalidBranchError,
+  FileNotFound
 };
 
