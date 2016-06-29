@@ -1,0 +1,13 @@
+{
+  "name": "api",
+  "base": "Model",
+  "idInjection": false,
+  "http": {
+    "path": "api"
+  },
+  "properties": {},
+  "validations": [],
+  "relations": {},
+  "acls": [],
+  "methods": {}
+}

@@ -15,10 +15,10 @@
   },
   "Repo": {
     "dataSource": null,
-    "public": true
-  },
-  "Environment": {
-    "dataSource": null,
     "public": false
+  },
+  "api": {
+    "dataSource": null,
+    "public": true
   }
 }

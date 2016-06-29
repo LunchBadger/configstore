@@ -53,18 +53,17 @@ describe('Repository API', function() {
     it('should be able to delete the repo', function() {
       function del() {
         return client
-          .del(`/api/repos/test-config`)
-          .expect(200, {count: 1})
+          .del('/api/repos/test-config')
+          .expect(200, {count: 1});
       }
 
       function check() {
         return client
-          .get(`/api/repos/test-config`)
+          .get('/api/repos/test-config')
           .expect(404);
       }
 
       return del().then(check);
     });
   });
-
 });

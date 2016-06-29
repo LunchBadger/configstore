@@ -12,15 +12,17 @@ class LockedError extends CustomError {
 }
 
 /**
- * Locks the given file, calls the given function, and unlocks the file.
+ * Locks the given file, calls the function, and unlocks the file.
  * This effectively makes the function a cross-process critical section.
  * @param {String} lockPath - filesystem path to a lock file, which will be
  *   created if it doesn't already exist.
  * @param {Function} fn - the function to be executed. Should return a Promise.
- * @returns {Promise}
+ * @returns {Promise} The return value (or error) will be passed through from
+ *   the function.
  */
 module.exports = function lock(lockPath, fn) {
   let lockFd = null;
+  let result = undefined;
 
   function unlock() {
     if (lockFd) {
@@ -43,7 +45,11 @@ module.exports = function lock(lockPath, fn) {
       }
     })
     .then(fn)
-    .then(unlock)
+    .then(result_ => {
+      result = result_;
+      return unlock();
+    })
+    .then(() => result)
     .catch((err) => unlock().then(() => { throw err; }));
 };
 

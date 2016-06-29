@@ -1,6 +1,7 @@
 {
   "name": "Repo",
   "base": "Model",
+  "strict": "validate",
   "idInjection": false,
   "options": {
     "validateUpsert": true
@@ -15,9 +16,5 @@
   "validations": [],
   "relations": {},
   "acls": [],
-  "methods": {},
-  "strict": "validate",
-  "remoting": {
-    "normalizeHttpPath": true
-  }
+  "methods": {}
 }

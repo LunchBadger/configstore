@@ -10,21 +10,20 @@ function CustomError(message) {
 util.inherits(CustomError, Error);
 
 // HTTP errors
-function badRequestError(msg) {
+function httpError(code, msg) {
   let err = Error(msg);
-  err.statusCode = 400;
-  return err
-}
-
-function notFoundError(msg) {
-  let err = Error(msg);
-  err.statusCode = 404;
+  err.statusCode = code;
   return err;
 }
+
+let badRequestError = httpError.bind(undefined, 400);
+let notFoundError = httpError.bind(undefined, 404);
+let preconditionFailedError = httpError.bind(undefined, 412);
 
 module.exports = {
   CustomError,
   badRequestError,
-  notFoundError
+  notFoundError,
+  preconditionFailedError
 };
 
