@@ -82,14 +82,8 @@ module.exports = function(Api) {
       });
   };
 
-  Api.afterRemote('downloadFile', (ctx, result, next) => {
-    // https://github.com/strongloop/loopback/issues/1945. This is still a bug,
-    // in my opinion, despite what it says in that ticket.
-    ctx.res.end(ctx.result);
-  });
-
   Api.testMethod = function(obj) {
-    return this._getRepo('new-repo')
+    return this._getRepo('foo')
       .then((repo) => {
         return repo.testMethod(obj);
       });
@@ -195,7 +189,7 @@ module.exports = function(Api) {
       }
     ],
     returns: [
-      {arg: 'data', type: 'string', root: true},
+      {arg: 'data', type: 'file', root: true},
       {arg: 'ETag', type: 'string', http: {target: 'header'}},
       {arg: 'Content-type', type: 'string', http: {target: 'header'}}
     ],

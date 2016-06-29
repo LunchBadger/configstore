@@ -13,14 +13,14 @@ let debug = require('debug')('configstore:git');
 class GitRepoError extends CustomError {}
 class RepoDoesNotExistError extends GitRepoError {
   constructor(repoName) {
-    super('Repo "${repoName}" does not exist');
+    super(`Repo "${repoName}" does not exist`);
     this.repoName = repoName;
   }
 }
 
 class OperationInProgress extends GitRepoError {
   constructor(repoName) {
-    super('Repo "${repoName}" already has an operation in progress');
+    super(`Repo "${repoName}" already has an operation in progress`);
     this.repoName = repoName;
   }
 }
@@ -233,6 +233,12 @@ class GitRepo {
             debug(repo, parentRevision, parentRevision.length);
             return git.Commit
               .lookupPrefix(repo, parentRevision, parentRevision.length)
+              .catch(err => {
+                if (err.toString().indexOf('Unable to parse OID') > 0) {
+                  throw new OptimisticConcurrencyError(this.name, branchName);
+                }
+                throw err;
+              })
               .then(parentCommit_ => {
                 if (!headCommit.id().equal(parentCommit_.id())) {
                   throw new OptimisticConcurrencyError(this.name, branchName);
@@ -256,7 +262,7 @@ class GitRepo {
           return Promise.all(allFiles);
         })
         // Update the index
-        .then(() => repo.getStatus({}))
+        .then(() => repo.getStatus())
         .then(changes => {
           if (initialCommit || changes.length > 0) {
             debug(`Changes detected (${changes.length} files), committing`);
@@ -307,13 +313,13 @@ class GitRepo {
       .then(tree => tree.getEntry(fileName))
       .then(entry => {
         if (!entry.isBlob()) {
-          throw Error(`Path ${fileName} is not a file`);
+          throw GitRepoError(`Path ${fileName} is not a file`);
         }
         return entry.getBlob();
       })
       .then(blob => {
         if (blob.rawsize() > (1024 * 1024)) {
-          throw Error(`File ${fileName} is too big`);
+          throw GitRepoError(`File ${fileName} is too big`);
         }
         return [blob.toString(), chksum];
       })
