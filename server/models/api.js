@@ -143,18 +143,6 @@ module.exports = function(Api) {
       });
   };
 
-  Api.testMethod = function(obj) {
-    return this._getRepo('foo')
-      .then((repo) => {
-        return repo.testMethod(obj);
-      });
-  };
-
-  Api.remoteMethod('testMethod', {
-    accepts: [{arg: 'data', type: 'object', http: {source: 'body'}}],
-    returns: [{arg: 'data', type: 'object', root: true}]
-  });
-
   Api.remoteMethod('create', {
     description: 'Create a new repository.',
     accepts: [{arg: 'repo', type: 'Repo', http: {source: 'body'}}],

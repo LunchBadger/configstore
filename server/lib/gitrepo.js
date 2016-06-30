@@ -416,10 +416,6 @@ class GitRepo {
         }
       });
   }
-
-  testMethod(obj) {
-    return this.getBranches();
-  }
 }
 
 module.exports = {
