@@ -25,6 +25,15 @@ describe('File locking system', function() {
       });
   });
 
+  it('should propagate the return value of the function', function() {
+    let testFn = sinon.stub();
+    testFn.returns('magic value');
+    return lock('/tmp/testlock', testFn)
+      .then(res => {
+        assert.equal(res, 'magic value');
+      });
+  });
+
   it('should raise an error if already locked', function() {
     let testFn = sinon.spy();
     let promise = lock('/tmp/testlock', () => {
