@@ -118,6 +118,18 @@ module.exports = function(Api) {
       });
   };
 
+  Api.deleteBranch = function(repoId, branchId) {
+    return this
+      ._getRepo(repoId)
+      .then(repo => repo.deleteBranch(branchId))
+      .then(deleted => {
+        return {count: deleted ? 1 : 0};
+      })
+      .catch(gitrepo.InvalidBranchError, err => {
+        return Promise.reject(error.notFoundError(err.message));
+      });
+  };
+
   Api.testMethod = function(obj) {
     return this._getRepo('foo')
       .then((repo) => {
@@ -234,5 +246,16 @@ module.exports = function(Api) {
         description: 'The branch object'}
     ],
     http: {verb: 'get', path: '/repos/:repoId/branches/:branchId'}
+  });
+
+  Api.remoteMethod('deleteBranch', {
+    description: 'Delete branch',
+    accepts: [
+      {arg: 'repoId', type: 'string', required: true, description: 'Repo id'},
+      {arg: 'branchId', type: 'string', required: true,
+        description: 'Branch id'},
+    ],
+    returns: {arg: 'count', type: 'object', root: true},
+    http: {verb: 'del', path: '/repos/:repoId/branches/:branchId'}
   });
 };

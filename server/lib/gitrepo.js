@@ -383,6 +383,29 @@ class GitRepo {
       });
   }
 
+  deleteBranch(branchName) {
+    let repo = null;
+
+    return this
+      .repo()
+      .then(repo_ => {
+        repo = repo_;
+        return git.Branch.lookup(repo, branchName, git.Branch.BRANCH.LOCAL);
+      })
+      .then(ref => {
+        if (ref.isHead()) {
+          repo.detachHead();
+        }
+        return git.Branch.delete(ref);
+      })
+      .then(result => result == 0 ? 1 : 0)
+      .catch(err => {
+        if (err.toString().indexOf('Cannot locate') >= 0) {
+          throw new InvalidBranchError(this.name, branchName);
+        }
+      });
+  }
+
   testMethod(obj) {
   }
 }
