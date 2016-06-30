@@ -25,7 +25,20 @@ module.exports = function(Api) {
   };
 
   Api.getOne = function(id) {
-    return this._getRepo(id).then(repo => { return {id: repo.name}; });
+    let repo = null;
+
+    return this
+      ._getRepo(id)
+      .then(repo_ => {
+        repo = repo_;
+        return repo.getBranches();
+      })
+      .then(branches => {
+        return {
+          id: repo.name,
+          branches: branches
+        };
+      });
   };
 
   Api.getAll = function() {

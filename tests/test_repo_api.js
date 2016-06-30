@@ -24,7 +24,7 @@ describe('Repository API', function() {
     function check() {
       return client
         .get('/api/repos/another-item')
-        .expect(200, {id: 'another-item'});
+        .expect(200, {id: 'another-item', branches: []});
     }
 
     return create().then(check);

@@ -370,6 +370,17 @@ class GitRepo {
       .then(() => oid.tostrS());
   }
 
+  getBranches() {
+    return this
+      .repo()
+      .then(repo => repo.getReferences(git.Reference.TYPE.LISTALL))
+      .then(references => {
+        return references
+          .filter(ref => ref.isBranch())
+          .map(ref => ref.name().replace(/refs\/heads\//, ''));
+      });
+  }
+
   getBranchRevision(branchName) {
     return this
       .repo()
@@ -407,6 +418,7 @@ class GitRepo {
   }
 
   testMethod(obj) {
+    return this.getBranches();
   }
 }
 

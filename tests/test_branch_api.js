@@ -212,12 +212,12 @@ describe('Branch API', function() {
         .expect(404);
     });
 
-    xit('should be able to get all branches in the repo', function() {
+    it('should be able to get all branches in the repo', function() {
       return supertest(app)
         .get('/api/repos/test-config')
-        .then((repo) => {
-          assert.property(repo, 'branches');
-          assert.property(repo.branches, 'my-branch');
+        .then(res => {
+          assert.property(res.body, 'branches');
+          assert.deepEqual(res.body.branches, ['my-branch']);
         });
     });
   });
