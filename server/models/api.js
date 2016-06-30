@@ -103,6 +103,21 @@ module.exports = function(Api) {
       });
   };
 
+  Api.getBranch = function(repoId, branchId) {
+    return this
+      ._getRepo(repoId)
+      .then(repo => repo.getBranchRevision(branchId))
+      .then(revision => {
+        return {
+          id: branchId,
+          revision: revision
+        };
+      })
+      .catch(gitrepo.InvalidBranchError, err => {
+        return Promise.reject(error.notFoundError(err.message));
+      });
+  };
+
   Api.testMethod = function(obj) {
     return this._getRepo('foo')
       .then((repo) => {
@@ -205,5 +220,19 @@ module.exports = function(Api) {
         description: 'The branch object'}
     ],
     http: {verb: 'put', path: '/repos/:repoId/branches/:branchId'}
+  });
+
+  Api.remoteMethod('getBranch', {
+    description: 'Get branch information',
+    accepts: [
+      {arg: 'repoId', type: 'string', required: true, description: 'Repo id'},
+      {arg: 'branchId', type: 'string', required: true,
+        description: 'Branch id'},
+    ],
+    returns: [
+      {arg: 'branch', type: 'Branch', required: true, root: true,
+        description: 'The branch object'}
+    ],
+    http: {verb: 'get', path: '/repos/:repoId/branches/:branchId'}
   });
 };

@@ -152,12 +152,12 @@ describe('Branch API', function() {
           supertest(app)
             .get('/api/repos/test-config/branches/second-branch/files/fileA')
             .expect(200, 'A bunch of configuration'),
-          // supertest(app)
-          //   .get('/api/repos/test-config/branches/my-branch')
-          //   .expect(200)
-          //   .then((oldBranch) => {
-          //     assert.equal(newBranch.revision, oldBranch.revision);
-          //   })
+          supertest(app)
+            .get('/api/repos/test-config/branches/my-branch')
+            .expect(200)
+            .then((oldBranch) => {
+              assert.equal(newBranch.revision, oldBranch.revision);
+            })
         ]);
       }
 
@@ -174,6 +174,22 @@ describe('Branch API', function() {
           .expect(400);
       });
 
+    it('should be able to get the current revision of the branch', function() {
+      return supertest(app)
+        .get('/api/repos/test-config/branches/my-branch')
+        //.expect(200)
+        .then(res => {
+          assert.propertyVal(res.body, 'id', 'my-branch');
+          assert.property(res.body, 'revision');
+        });
+    });
+
+    it('return an error when getting a non-existent branch', function() {
+      return supertest(app)
+        .get('/api/repos/test-config/branches/does-not-exist')
+        .expect(404);
+    });
+
     xit('should be able to delete the branch', function() {
       function del() {
         return supertest(app)
@@ -188,16 +204,6 @@ describe('Branch API', function() {
       }
 
       return del().then(check);
-    });
-
-    xit('should be able to get the current revision of the branch', function() {
-      return supertest(app)
-        .get('/api/repos/test-config/branches/my-branch')
-        .expect(200)
-        .then((branch) => {
-          assert.propertyVal(branch, 'name', 'my-branch');
-          assert.property(branch, 'revision');
-        });
     });
 
     xit('should return error when getting the revision of a bad branch',

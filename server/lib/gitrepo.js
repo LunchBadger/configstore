@@ -382,6 +382,19 @@ class GitRepo {
       .then(() => oid.tostrS());
   }
 
+  getBranchRevision(branchName) {
+    return this
+      .repo()
+      .then(repo => repo.getBranchCommit(branchName))
+      .then(commit => commit.id().tostrS())
+      .catch(err => {
+        if (err.toString().indexOf('no reference found') >= 0) {
+          throw new InvalidBranchError(this.name, branchName);
+        }
+        throw err;
+      });
+  }
+
   testMethod(obj) {
   }
 }
