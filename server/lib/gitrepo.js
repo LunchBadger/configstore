@@ -52,6 +52,14 @@ class FileNotFound extends GitRepoError {
   }
 }
 
+class RevisionNotFound extends GitRepoError {
+  constructor(repoName, revision) {
+    super(`Revision "${revision} in repo "${repoName} not found`);
+    this.repoName = repoName;
+    this.revision = revision;
+  }
+}
+
 class RepoManager {
   constructor(root) {
     this.root = path.resolve(root);
@@ -174,15 +182,19 @@ class GitRepo {
     }
   }
 
+  sign() {
+    let now = new Date();
+    return git.Signature.create('LunchBadger', 'admin@lunchbadger.com',
+                                now.getTime() / 1000, now.getTimezoneOffset());
+  }
+
   updateBranchFiles(branchName, parentRevision, files) {
     let repo = null;
     let index = null;
     let parents = [];
     let initialCommit = false;
 
-    let now = new Date();
-    let author = git.Signature.create('LunchBadger', 'admin@lunchbadger.com',
-      now.getTime() / 1000, now.getTimezoneOffset());
+    let author = this.sign();
     let committer = author;
     let commitMessage = 'Changes';
 
@@ -277,7 +289,7 @@ class GitRepo {
               // Commit
               .then(oid => {
                 return repo.createCommit('HEAD', author, committer,
-                  commitMessage, oid, parents);
+                                         commitMessage, oid, parents);
               })
               .then(oid => {
                 return index
@@ -319,6 +331,8 @@ class GitRepo {
       })
       .then(blob => {
         if (blob.rawsize() > (1024 * 1024)) {
+          // Hopefully prevent people crashing this service by uploading large
+          // files and then downloading them through this interface.
           throw GitRepoError(`File ${fileName} is too big`);
         }
         return [blob.toString(), chksum];
@@ -333,6 +347,41 @@ class GitRepo {
       });
   }
 
+  lookupCommit(revspec) {
+    let repo = null;
+    return this
+      .repo()
+      .then(repo_ => {
+        repo = repo_;
+        return git.AnnotatedCommit.fromRevspec(repo, revspec);
+      })
+      .then(annotatedCommit => annotatedCommit.id())
+      .catch(err => {
+        if (err.toString().indexOf('not found') >= 0) {
+          throw new RevisionNotFound(this.name, revspec);
+        }
+        throw err;
+      });
+  }
+
+  upsertBranch(branchName, revision) {
+    let repo = null;
+    let oid = null;
+
+    return this
+      .lookupCommit(revision)
+      .then(oid_ => {
+        oid = oid_;
+        return this.repo();
+      })
+      .then(repo_ => {
+        repo = repo_;
+        return repo.createBranch(branchName, oid, 1, this.sign(),
+                                 'Upsert branch');
+      })
+      .then(() => oid.tostrS());
+  }
+
   testMethod(obj) {
   }
 }
@@ -344,6 +393,7 @@ module.exports = {
   OperationInProgress,
   OptimisticConcurrencyError,
   InvalidBranchError,
-  FileNotFound
+  FileNotFound,
+  RevisionNotFound
 };
 

@@ -6,7 +6,7 @@ let error = require('../lib/error');
 
 module.exports = function(Api) {
   Api.create = function(data) {
-    let repo = new Api.app.models.Repo(data);
+    let repo = new this.app.models.Repo(data);
     if (!repo.isValid()) {
       return Promise.reject(error.badRequestError('Invalid Repo format'));
     }
@@ -82,6 +82,27 @@ module.exports = function(Api) {
       });
   };
 
+  Api.upsertBranch = function(repoId, branchId, data) {
+    if (data.id && data.id != branchId) {
+      return Promise.reject(error.badRequestError('Invalid Branch format'));
+    }
+    data.id = branchId;
+    let branch = new this.app.models.Branch(data);
+    if (!branch.isValid()) {
+      return Promise.reject(error.badRequestError('Invalid Branch format'));
+    }
+
+    return this
+      ._getRepo(repoId)
+      .then(repo => repo.upsertBranch(branchId, branch.revision))
+      .then(newRevision => {
+        return {'id': branchId, 'revision': newRevision};
+      })
+      .catch(gitrepo.RevisionNotFound, err => {
+        return Promise.reject(error.badRequestError(err.message));
+      });
+  };
+
   Api.testMethod = function(obj) {
     return this._getRepo('foo')
       .then((repo) => {
@@ -135,29 +156,13 @@ module.exports = function(Api) {
   Api.remoteMethod('updateBranchFiles', {
     description: 'Add a new commit / revision.',
     accepts: [
-      {
-        arg: 'repoId',
-        type: 'string',
-        description: 'Repo id',
-        required: true
-      },
-      {
-        arg: 'branchId',
-        type: 'string',
-        description: 'Branch id',
-        required: true
-      },
-      {
-        arg: 'data',
-        type: 'object',
-        http: {source: 'body'},
-        description: 'Object mapping file name to its content'
-      },
-      {
-        arg: 'parentRevision',
-        type: 'string',
-        http: ctx => ctx.req.get('If-Match')
-      }
+      {arg: 'repoId', type: 'string', required: true, description: 'Repo id'},
+      {arg: 'branchId', type: 'string', required: true,
+        description: 'Branch id'},
+      {arg: 'data', type: 'object', http: {source: 'body'},
+        description: 'Object mapping file name to its content'},
+      {arg: 'parentRevision', type: 'string',
+        http: ctx => ctx.req.get('If-Match')}
     ],
     returns: [
       {arg: 'ETag', type: 'string', http: {target: 'header'}},
@@ -169,24 +174,11 @@ module.exports = function(Api) {
   Api.remoteMethod('downloadFile', {
     description: 'Retrieve a file from the given branch',
     accepts: [
-      {
-        arg: 'repoId',
-        type: 'string',
-        description: 'Repo id',
-        required: true
-      },
-      {
-        arg: 'branchId',
-        type: 'string',
-        description: 'Branch id',
-        required: true
-      },
-      {
-        arg: 'fileName',
-        type: 'string',
-        description: 'File name',
-        required: true
-      }
+      {arg: 'repoId', type: 'string', required: true, description: 'Repo id'},
+      {arg: 'branchId', type: 'string', required: true,
+        description: 'Branch id'},
+      {arg: 'fileName', type: 'string', required: true,
+        description: 'File name'}
     ],
     returns: [
       {arg: 'data', type: 'file', root: true},
@@ -197,5 +189,21 @@ module.exports = function(Api) {
       verb: 'get',
       path: '/repos/:repoId/branches/:branchId/files/:fileName(*)'
     }
+  });
+
+  Api.remoteMethod('upsertBranch', {
+    description: 'Create or update a branch',
+    accepts: [
+      {arg: 'repoId', type: 'string', required: true, description: 'Repo id'},
+      {arg: 'branchId', type: 'string', required: true,
+        description: 'Branch id'},
+      {arg: 'branch', type: 'Branch', required: true, http: {source: 'body'},
+        description: 'The branch object'}
+    ],
+    returns: [
+      {arg: 'branch', type: 'Branch', required: true, root: true,
+        description: 'The branch object'}
+    ],
+    http: {verb: 'put', path: '/repos/:repoId/branches/:branchId'}
   });
 };

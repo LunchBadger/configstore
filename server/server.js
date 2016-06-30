@@ -1,4 +1,5 @@
 'use strict';
+require('longjohn');
 
 let loopback = require('loopback');
 let boot = require('loopback-boot');

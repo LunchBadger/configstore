@@ -20,5 +20,9 @@
   "api": {
     "dataSource": null,
     "public": true
+  },
+  "Branch": {
+    "dataSource": null,
+    "public": false
   }
 }
