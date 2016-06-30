@@ -192,7 +192,6 @@ class GitRepo {
     let repo = null;
     let index = null;
     let parents = [];
-    let initialCommit = false;
 
     let author = this.sign();
     let committer = author;
@@ -204,27 +203,16 @@ class GitRepo {
         .then(repo_ => {
           repo = repo_;
         })
-        // Determine whether this is an initial commit
-        .then(() => {
-          return git.Reference
-            .lookup(repo, 'HEAD')
-            .then(ref => {
-              return ref
-                .resolve()
-                .then(() => ref)
-                .catch(() => {
-                  initialCommit = true;
-                  return ref;
-                });
-            });
-        })
         // Check out the given branch and return the latest commit or null
         .then(ref => {
-          if (initialCommit) {
+          if (repo.headUnborn()) {
             debug(`Initial commit, changing HEAD ref to ${branchName}`);
-            return ref
-              .symbolicSetTarget(`refs/heads/${branchName}`,
-                'Setting initial branch name')
+            return git.Reference
+              .lookup(repo, 'HEAD')
+              .then(ref => {
+                return ref.symbolicSetTarget(`refs/heads/${branchName}`,
+                                             'Setting initial branch name');
+              })
               .then(() => null);
           } else {
             debug(`Not initial commit, checking out branch ${branchName}`);
@@ -276,7 +264,7 @@ class GitRepo {
         // Update the index
         .then(() => repo.getStatus())
         .then(changes => {
-          if (initialCommit || changes.length > 0) {
+          if (changes.length > 0) {
             debug(`Changes detected (${changes.length} files), committing`);
             return repo
               .refreshIndex()
