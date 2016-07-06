@@ -1,4 +1,8 @@
 {
+  "parser": "babel-eslint",
+  "parserOptions": {
+    "sourceType": "script"
+  },
   "extends": "loopback",
   "env": {
     "es6": true
