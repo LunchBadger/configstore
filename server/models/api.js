@@ -29,18 +29,29 @@ module.exports = function(Api) {
     }
   };
 
-  Api.getOne = async function(id) {
-    let repo = await this._getRepo(id);
+  Api._getRepoInfo = async function(repo) {
     let branches = await repo.getBranches();
+    let branchRevs = await Promise.all(branches.map(async branch => {
+      return [branch, await repo.getBranchRevision(branch)];
+    }));
+    let branchInfo = {};
+    branchRevs.forEach(([branch, revision]) => {
+      branchInfo[branch] = revision;
+    });
     return {
       id: repo.name,
-      branches: branches
+      branches: branchInfo
     };
+  };
+
+  Api.getOne = async function(id) {
+    let repo = await this._getRepo(id);
+    return await this._getRepoInfo(repo);
   };
 
   Api.getAll = async function() {
     let repos = await this.manager.getAllRepos();
-    return repos.map((repo) => { return {id: repo.name}; });
+    return await Promise.all(repos.map(repo => this._getRepoInfo(repo)));
   };
 
   Api.delete = async function(id) {

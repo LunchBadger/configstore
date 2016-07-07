@@ -183,7 +183,8 @@ describe('Branch API', function() {
       let res = await supertest(app)
         .get('/api/repos/test-config');
       assert.property(res.body, 'branches');
-      assert.deepEqual(res.body.branches, ['my-branch']);
+      assert.isObject(res.body.branches);
+      assert.property(res.body.branches, 'my-branch');
     });
   });
 });
