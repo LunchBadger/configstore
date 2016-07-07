@@ -182,7 +182,7 @@ class GitRepo {
     return await lock(this.lockPath, async () => {
       let repo = await this.repo();
 
-      // Find head commit
+      // Check out the given branch and return the latest commit or null
       let headCommit = undefined;
 
       if (repo.headUnborn()) {
@@ -302,10 +302,12 @@ class GitRepo {
   }
 
   async upsertBranch(branchName, revision) {
-    let oid = await this.lookupCommit(revision);
-    let repo = await this.repo();
-    await repo.createBranch(branchName, oid, 1, this.sign(), 'Upsert branch');
-    return oid.tostrS();
+    return await lock(this.lockPath, async () => {
+      let oid = await this.lookupCommit(revision);
+      let repo = await this.repo();
+      await repo.createBranch(branchName, oid, 1, this.sign(), 'Upsert branch');
+      return oid.tostrS();
+    });
   }
 
   async getBranches() {
@@ -331,20 +333,23 @@ class GitRepo {
   }
 
   async deleteBranch(branchName) {
-    let repo = await this.repo();
-    let ref = undefined;
-    try {
-      ref = await git.Branch.lookup(repo, branchName, git.Branch.BRANCH.LOCAL);
-    } catch (err) {
-      if (err.toString().indexOf('Cannot locate') >= 0) {
-        throw new InvalidBranchError(this.name, branchName);
+    return await lock(this.lockPath, async () => {
+      let repo = await this.repo();
+      let ref = undefined;
+      try {
+        ref = await git.Branch.lookup(repo, branchName,
+                                      git.Branch.BRANCH.LOCAL);
+      } catch (err) {
+        if (err.toString().indexOf('Cannot locate') >= 0) {
+          throw new InvalidBranchError(this.name, branchName);
+        }
       }
-    }
-    if (ref.isHead()) {
-      repo.detachHead();
-    }
-    let result = await git.Branch.delete(ref);
-    return result == 0 ? 1 : 0;
+      if (ref.isHead()) {
+        repo.detachHead();
+      }
+      let result = await git.Branch.delete(ref);
+      return result == 0 ? 1 : 0;
+    });
   }
 }
 
