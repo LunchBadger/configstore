@@ -5,52 +5,47 @@ let gitrepo = require('../lib/gitrepo');
 let error = require('../lib/error');
 
 module.exports = function(Api) {
-  Api.create = function(data) {
+  Api.create = async function(data) {
     let repo = new this.app.models.Repo(data);
     if (!repo.isValid()) {
-      return Promise.reject(error.badRequestError('Invalid Repo format'));
+      throw error.badRequestError('Invalid Repo format');
     }
-    return this.manager.createRepo(repo.id).then(_ => repo);
+    await this.manager.createRepo(repo.id);
+    return repo;
   };
 
-  Api.exists = function(id) {
-    return this.manager.repoExists(id);
+  Api.exists = async function(id) {
+    return await this.manager.repoExists(id);
   };
 
-  Api._getRepo = function(id) {
-    return this.manager.getRepo(id)
-      .catch(gitrepo.RepoDoesNotExistError, (err) => {
-        return Promise.reject(error.notFoundError(err.message));
-      });
+  Api._getRepo = async function(id) {
+    try {
+      return await this.manager.getRepo(id);
+    } catch (err) {
+      if (err instanceof gitrepo.RepoDoesNotExistError) {
+        throw error.notFoundError(err.message);
+      }
+      throw err;
+    }
   };
 
-  Api.getOne = function(id) {
-    let repo = null;
-
-    return this
-      ._getRepo(id)
-      .then(repo_ => {
-        repo = repo_;
-        return repo.getBranches();
-      })
-      .then(branches => {
-        return {
-          id: repo.name,
-          branches: branches
-        };
-      });
+  Api.getOne = async function(id) {
+    let repo = await this._getRepo(id);
+    let branches = await repo.getBranches();
+    return {
+      id: repo.name,
+      branches: branches
+    };
   };
 
-  Api.getAll = function() {
-    return this.manager.getAllRepos().then((repos) => {
-      return repos.map((repo) => { return {id: repo.name}; });
-    });
+  Api.getAll = async function() {
+    let repos = await this.manager.getAllRepos();
+    return repos.map((repo) => { return {id: repo.name}; });
   };
 
-  Api.delete = function(id) {
-    return this.manager.removeRepo(id).then((deleted) => {
-      return {count: deleted ? 1 : 0};
-    });
+  Api.delete = async function(id) {
+    let deleted = await this.manager.removeRepo(id);
+    return {count: deleted ? 1 : 0};
   };
 
   Api.updateBranchFiles = function(repoId, branchId, data, parentRevision, cb) {
@@ -58,89 +53,96 @@ module.exports = function(Api) {
     // ends up as the value of the ETag header. Setting a header based on the
     // response value only seems to work when calling the cb, not through the
     // Promise.
-    if (Object.keys(data).length < 1) {
-      cb(error.badRequestError('Must specify some data'));
-      return;
-    }
+    (async () => {
+      if (Object.keys(data).length < 1) {
+        cb(error.badRequestError('Must specify some data'));
+        return;
+      }
 
-    this._getRepo(repoId)
-      .then(repo => {
-        return repo.updateBranchFiles(branchId, parentRevision, data);
-      })
-      .then(res => {
+      let repo = await this._getRepo(repoId);
+      try {
+        let res = await repo.updateBranchFiles(branchId, parentRevision, data);
         cb(null, res, undefined);
-      })
-      .catch(gitrepo.OptimisticConcurrencyError, (err) => {
-        cb(error.preconditionFailedError('Please refresh'));
-      })
-      .catch(err => {
-        cb(err);
-      });
+      } catch (err) {
+        if (err instanceof gitrepo.OptimisticConcurrencyError) {
+          cb(error.preconditionFailedError('Please refresh'));
+        } else {
+          cb(err);
+        }
+      }
+    })();
   };
 
   Api.downloadFile = function(repoId, branchId, fileName, cb) {
-    this
-      ._getRepo(repoId)
-      .then(repo => {
-        return repo.getFile(branchId, fileName);
-      })
-      .then(([content, chksum]) => {
+    (async () => {
+      let repo = await this._getRepo(repoId);
+
+      try {
+        let [content, chksum] = await repo.getFile(branchId, fileName);
         cb(null, content, chksum, 'application/octet-stream');
-      })
-      .catch(gitrepo.FileNotFound, err => {
-        cb(error.notFoundError(`File ${fileName} does not exist`));
-      })
-      .catch(err => {
-        cb(err);
-      });
+      } catch (err) {
+        if (err instanceof gitrepo.FileNotFound) {
+          cb(error.notFoundError(`File ${fileName} does not exist`));
+        } else {
+          cb(err);
+        }
+      }
+    })();
   };
 
-  Api.upsertBranch = function(repoId, branchId, data) {
+  Api.upsertBranch = async function(repoId, branchId, data) {
     if (data.id && data.id != branchId) {
-      return Promise.reject(error.badRequestError('Invalid Branch format'));
+      throw error.badRequestError('Invalid Branch format');
     }
     data.id = branchId;
     let branch = new this.app.models.Branch(data);
     if (!branch.isValid()) {
-      return Promise.reject(error.badRequestError('Invalid Branch format'));
+      throw error.badRequestError('Invalid Branch format');
     }
 
-    return this
-      ._getRepo(repoId)
-      .then(repo => repo.upsertBranch(branchId, branch.revision))
-      .then(newRevision => {
-        return {'id': branchId, 'revision': newRevision};
-      })
-      .catch(gitrepo.RevisionNotFound, err => {
-        return Promise.reject(error.badRequestError(err.message));
-      });
+    let repo = await this._getRepo(repoId);
+
+    try {
+      let newRevision = await repo.upsertBranch(branchId, branch.revision);
+      return {'id': branchId, 'revision': newRevision};
+    } catch (err) {
+      if (err instanceof gitrepo.RevisionNotFound) {
+        throw error.badRequestError(err.message);
+      }
+      throw err;
+    }
   };
 
-  Api.getBranch = function(repoId, branchId) {
-    return this
-      ._getRepo(repoId)
-      .then(repo => repo.getBranchRevision(branchId))
-      .then(revision => {
-        return {
-          id: branchId,
-          revision: revision
-        };
-      })
-      .catch(gitrepo.InvalidBranchError, err => {
-        return Promise.reject(error.notFoundError(err.message));
-      });
+  Api.getBranch = async function(repoId, branchId) {
+    let repo = await this._getRepo(repoId);
+    let revision = undefined;
+    try {
+      revision = await repo.getBranchRevision(branchId);
+    } catch (err) {
+      if (err instanceof gitrepo.InvalidBranchError) {
+        throw error.notFoundError(err.message);
+      }
+      throw err;
+    }
+
+    return {
+      id: branchId,
+      revision: revision
+    };
   };
 
-  Api.deleteBranch = function(repoId, branchId) {
-    return this
-      ._getRepo(repoId)
-      .then(repo => repo.deleteBranch(branchId))
-      .then(deleted => {
-        return {count: deleted ? 1 : 0};
-      })
-      .catch(gitrepo.InvalidBranchError, err => {
-        return Promise.reject(error.notFoundError(err.message));
-      });
+  Api.deleteBranch = async function(repoId, branchId) {
+    let repo = await this._getRepo(repoId);
+    let deleted = undefined;
+    try {
+      deleted = await repo.deleteBranch(branchId);
+    } catch (err) {
+      if (err instanceof gitrepo.InvalidBranchError) {
+        throw error.notFoundError(err.message);
+      }
+      throw err;
+    }
+    return {count: deleted ? 1 : 0};
   };
 
   Api.remoteMethod('create', {

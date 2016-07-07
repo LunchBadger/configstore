@@ -54,7 +54,7 @@ class FileNotFound extends GitRepoError {
 
 class RevisionNotFound extends GitRepoError {
   constructor(repoName, revision) {
-    super(`Revision "${revision} in repo "${repoName} not found`);
+    super(`Revision "${revision}"" in repo "${repoName}" not found`);
     this.repoName = repoName;
     this.revision = revision;
   }
@@ -158,7 +158,7 @@ class GitRepo {
     this.name = path.basename(dirPath, '.git');
     this.path = dirPath;
     this.lockPath = path.join(this.path, '.git', 'txn.lock');
-    this._repo = null;
+    this._repo = undefined;
   }
 
   async repo() {
@@ -183,7 +183,7 @@ class GitRepo {
       let repo = await this.repo();
 
       // Find head commit
-      let headCommit = null;
+      let headCommit = undefined;
 
       if (repo.headUnborn()) {
         debug(`Initial commit, changing HEAD ref to ${branchName}`);
@@ -208,7 +208,7 @@ class GitRepo {
       if (parentRevision && headCommit) {
         debug(repo, parentRevision, parentRevision.length);
 
-        let parentCommit = null;
+        let parentCommit = undefined;
         try {
           parentCommit = await git.Commit.lookupPrefix(repo, parentRevision,
                                                  parentRevision.length);
@@ -265,7 +265,7 @@ class GitRepo {
     let chksum = commit.id().tostrS();
     let tree = await commit.getTree();
 
-    let entry = null;
+    let entry = undefined;
     try {
       entry = await tree.getEntry(fileName);
     } catch (err) {
@@ -332,7 +332,7 @@ class GitRepo {
 
   async deleteBranch(branchName) {
     let repo = await this.repo();
-    let ref = null;
+    let ref = undefined;
     try {
       ref = await git.Branch.lookup(repo, branchName, git.Branch.BRANCH.LOCAL);
     } catch (err) {
