@@ -69,14 +69,13 @@ class RepoManager {
    * Lists all existing repositories.
    * @returns {Promise.<Array.<GitRepo>>}
    */
-  getAllRepos() {
-    return fs
+  async getAllRepos() {
+    return await fs
       .readdirAsync(this.root)
       .map(potentialFile => path.join(this.root, potentialFile))
-      .filter((potentialPath) => {
-        return fs
-          .statAsync(potentialPath)
-          .then(stat => stat.isDirectory() && potentialPath.endsWith('.git'));
+      .filter(async (potentialPath) => {
+        let stat = await fs.statAsync(potentialPath);
+        return (stat.isDirectory() && potentialPath.endsWith('.git'));
       })
       .map(path => new GitRepo(path));
   }
@@ -84,8 +83,8 @@ class RepoManager {
   /**
    * Removes all existing repositories.
    */
-  removeAllRepos() {
-    return this.getAllRepos().each(repo => rimraf(repo.path));
+  async removeAllRepos() {
+    return await this.getAllRepos().each(repo => rimraf(repo.path));
   }
 
   /**
@@ -102,9 +101,14 @@ class RepoManager {
    * @param {String} repoName - the name of the repository.
    * @returns {Promise.<Boolean>}
    */
-  repoExists(repoName) {
+  async repoExists(repoName) {
     let path = this.repoPath(repoName);
-    return fs.statAsync(path).then((res) => true).catch(() => false);
+    try {
+      let stat = await fs.statAsync(path);
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /**
@@ -112,14 +116,13 @@ class RepoManager {
    * @param {String} repoName - the name of the repository.
    * @returns {Boolean} true if the repo existed and was deleted.
    */
-  removeRepo(repoName) {
-    return this.repoExists(repoName).then((exists) => {
-      if (exists) {
-        return rimraf(this.repoPath(repoName)).then(_ => true);
-      } else {
-        return false;
-      }
-    });
+  async removeRepo(repoName) {
+    if (await this.repoExists(repoName)) {
+      await rimraf(this.repoPath(repoName));
+      return true;
+    } else {
+      return false;
+    }
   }
 
   /**
@@ -127,22 +130,13 @@ class RepoManager {
    * @param {String} repoName - the name of the repository.
    * @returns {Promise.<GitRepo>} the newly created repository.
    */
-  createRepo(repoName) {
-    return this
-      .repoExists(repoName)
-      .then((exists) => {
-        if (!exists) {
-          let path = this.repoPath(repoName);
-          return fs
-            .mkdirAsync(this.repoPath(repoName))
-            .then(() => {
-              return git.Repository.init(path, 0);
-            });
-        }
-      })
-      .then(() => {
-        return this.getRepo(repoName);
-      });
+  async createRepo(repoName) {
+    if (! await this.repoExists(repoName)) {
+      let path = this.repoPath(repoName);
+      await fs.mkdirAsync(this.repoPath(repoName));
+      return await git.Repository.init(path, 0);
+    }
+    return await this.getRepo(repoName);
   }
 
   /**
@@ -150,16 +144,12 @@ class RepoManager {
    * @param repoName
    * @returns {Promise.<GitRepo>}
    */
-  getRepo(repoName) {
-    return this
-      .repoExists(repoName)
-      .then((exists) => {
-        if (exists) {
-          return new GitRepo(this.repoPath(repoName));
-        } else {
-          throw new RepoDoesNotExistError(repoName);
-        }
-      });
+  async getRepo(repoName) {
+    if (await this.repoExists(repoName)) {
+      return new GitRepo(this.repoPath(repoName));
+    } else {
+      throw new RepoDoesNotExistError(repoName);
+    }
   }
 }
 
@@ -171,15 +161,11 @@ class GitRepo {
     this._repo = null;
   }
 
-  repo() {
-    if (this._repo) {
-      return Promise.resolve(this._repo);
-    } else {
-      return git.Repository.open(this.path).then(repo_ => {
-        this._repo = repo_;
-        return this._repo;
-      });
+  async repo() {
+    if (!this._repo) {
+      this._repo = await git.Repository.open(this.path);
     }
+    return this._repo;
   }
 
   sign() {
@@ -188,233 +174,177 @@ class GitRepo {
                                 now.getTime() / 1000, now.getTimezoneOffset());
   }
 
-  updateBranchFiles(branchName, parentRevision, files) {
-    let repo = null;
-    let index = null;
-    let parents = [];
-
+  async updateBranchFiles(branchName, parentRevision, files) {
     let author = this.sign();
     let committer = author;
     let commitMessage = 'Changes';
 
-    return lock(this.lockPath, () => {
-      return this
-        .repo()
-        .then(repo_ => {
-          repo = repo_;
-        })
-        // Check out the given branch and return the latest commit or null
-        .then(ref => {
-          if (repo.headUnborn()) {
-            debug(`Initial commit, changing HEAD ref to ${branchName}`);
-            return git.Reference
-              .lookup(repo, 'HEAD')
-              .then(ref => {
-                return ref.symbolicSetTarget(`refs/heads/${branchName}`,
-                                             'Setting initial branch name');
-              })
-              .then(() => null);
-          } else {
-            debug(`Not initial commit, checking out branch ${branchName}`);
-            return repo
-              .checkoutBranch(branchName)
-              .then(() => repo.getHeadCommit())
-              .catch((err) => {
-                if (err.toString().indexOf('no reference found') >= 0) {
-                  throw new GitRepoError('Invalid branch');
-                }
-                throw err;
-              });
+    return await lock(this.lockPath, async () => {
+      let repo = await this.repo();
+
+      // Find head commit
+      let headCommit = null;
+
+      if (repo.headUnborn()) {
+        debug(`Initial commit, changing HEAD ref to ${branchName}`);
+        let ref = await git.Reference.lookup(repo, 'HEAD');
+        await ref.symbolicSetTarget(`refs/heads/${branchName}`,
+                                    'Setting initial branch name');
+      } else {
+        debug(`Not initial commit, checking out branch ${branchName}`);
+        try {
+          await repo.checkoutBranch(branchName);
+          headCommit = await repo.getHeadCommit();
+        } catch (err) {
+          if (err.toString().indexOf('no reference found') >= 0) {
+            throw new GitRepoError('Invalid branch');
           }
-        })
-        // Check that we're on the correct revision as per given parentRevision
-        .then((headCommit) => {
-          if (parentRevision && headCommit) {
-            debug(repo, parentRevision, parentRevision.length);
-            return git.Commit
-              .lookupPrefix(repo, parentRevision, parentRevision.length)
-              .catch(err => {
-                if (err.toString().indexOf('Unable to parse OID') > 0) {
-                  throw new OptimisticConcurrencyError(this.name, branchName);
-                }
-                throw err;
-              })
-              .then(parentCommit_ => {
-                if (!headCommit.id().equal(parentCommit_.id())) {
-                  throw new OptimisticConcurrencyError(this.name, branchName);
-                }
-                parents.push(parentCommit_);
-              });
-          } else if (parentRevision && !headCommit) {
-            throw new GitRepoError('Given parent revision is invalid');
-          } else if (!parentRevision && headCommit) {
+          throw err;
+        }
+      }
+
+      // Check that we're on the correct revision as per given parentRevision
+      let parents = [];
+      if (parentRevision && headCommit) {
+        debug(repo, parentRevision, parentRevision.length);
+
+        let parentCommit = null;
+        try {
+          parentCommit = await git.Commit.lookupPrefix(repo, parentRevision,
+                                                 parentRevision.length);
+        } catch (err) {
+          if (err.toString().indexOf('Unable to parse OID') > 0) {
             throw new OptimisticConcurrencyError(this.name, branchName);
           }
-        })
-        // Update the files to the desired content
-        .then(() => {
-          debug('Writing files to working dir');
-          let allFiles = [];
-          for (let fname in files) {
-            let fullPath = path.join(this.path, fname);
-            allFiles.push(fs.writeFileAsync(fullPath, files[fname]));
-          }
-          return Promise.all(allFiles);
-        })
-        // Update the index
-        .then(() => repo.getStatus())
-        .then(changes => {
-          if (changes.length > 0) {
-            debug(`Changes detected (${changes.length} files), committing`);
-            return repo
-              .refreshIndex()
-              .then(index_ => {
-                index = index_;
-                return index.addAll();
-              })
-              .then(() => index.write())
-              .then(() => index.writeTree())
-              // Commit
-              .then(oid => {
-                return repo.createCommit('HEAD', author, committer,
-                                         commitMessage, oid, parents);
-              })
-              .then(oid => {
-                return index
-                  .clear()
-                  .then(() => oid.tostrS());
-              });
-          } else {
-            debug('No changes detected');
-            return parentRevision;
-          }
-        })
-        .then(oid => {
-          debug('Done', oid);
-          return oid;
-        });
+          throw err;
+        }
+
+        if (!headCommit.id().equal(parentCommit.id())) {
+          throw new OptimisticConcurrencyError(this.name, branchName);
+        }
+        parents.push(parentCommit);
+      } else if (parentRevision && !headCommit) {
+        throw new GitRepoError('Given parent revision is invalid');
+      } else if (!parentRevision && headCommit) {
+        throw new OptimisticConcurrencyError(this.name, branchName);
+      }
+
+      // Update the files to the desired content
+      debug('Writing files to working dir');
+      let allFiles = [];
+      for (let fname in files) {
+        let fullPath = path.join(this.path, fname);
+        allFiles.push(fs.writeFileAsync(fullPath, files[fname]));
+      }
+      await Promise.all(allFiles);
+
+      // Update the index
+      let changes = await repo.getStatus();
+      if (changes.length > 0) {
+        debug(`Changes detected (${changes.length} files), committing`);
+        let index = await repo.refreshIndex();
+        await index.addAll();
+        await index.write();
+        let indexOid = await index.writeTree();
+        let commitOid = await repo.createCommit('HEAD', author, committer,
+                                                commitMessage, indexOid,
+                                                parents);
+        await index.clear();
+        debug('Done', commitOid);
+        return commitOid.tostrS();
+      } else {
+        debug('No changes detected');
+        return parentRevision;
+      }
     });
   }
 
-  getFile(branchName, fileName) {
-    let repo = null;
-    let chksum = null;
+  async getFile(branchName, fileName) {
+    let repo = await this.repo();
+    let commit = await repo.getBranchCommit(branchName);
+    let chksum = commit.id().tostrS();
+    let tree = await commit.getTree();
 
-    return this
-      .repo()
-      .then(repo_ => {
-        repo = repo_;
-        return repo.getBranchCommit(branchName);
-      })
-      .then(commit => {
-        chksum = commit.id().tostrS();
-        return commit.getTree();
-      })
-      .then(tree => tree.getEntry(fileName))
-      .then(entry => {
-        if (!entry.isBlob()) {
-          throw GitRepoError(`Path ${fileName} is not a file`);
-        }
-        return entry.getBlob();
-      })
-      .then(blob => {
-        if (blob.rawsize() > (1024 * 1024)) {
-          // Hopefully prevent people crashing this service by uploading large
-          // files and then downloading them through this interface.
-          throw GitRepoError(`File ${fileName} is too big`);
-        }
-        return [blob.toString(), chksum];
-      })
-      .catch(err => {
-        let msg = err.toString();
-        if (msg.indexOf('does not exist in the given tree') >= 0) {
-          throw new FileNotFound(this.name, branchName, fileName);
-        } else {
-          throw err;
-        }
-      });
+    let entry = null;
+    try {
+      entry = await tree.getEntry(fileName);
+    } catch (err) {
+      if (err.toString().indexOf('does not exist in the given tree') >= 0) {
+        throw new FileNotFound(this.name, branchName, fileName);
+      }
+      throw err;
+    }
+    if (!entry.isBlob()) {
+      throw GitRepoError(`Path ${fileName} is not a file`);
+    }
+
+    let blob = await entry.getBlob();
+    if (blob.rawsize() > (1024 * 1024)) {
+      // Hopefully prevent people crashing this service by uploading large
+      // files and then downloading them through this interface.
+      throw GitRepoError(`File ${fileName} is too big`);
+    }
+    return [blob.toString(), chksum];
   }
 
-  lookupCommit(revspec) {
-    let repo = null;
-    return this
-      .repo()
-      .then(repo_ => {
-        repo = repo_;
-        return git.AnnotatedCommit.fromRevspec(repo, revspec);
-      })
-      .then(annotatedCommit => annotatedCommit.id())
-      .catch(err => {
-        if (err.toString().indexOf('not found') >= 0) {
-          throw new RevisionNotFound(this.name, revspec);
-        }
-        throw err;
-      });
+  async lookupCommit(revspec) {
+    let repo = await this.repo();
+
+    try {
+      let annCommit = await git.AnnotatedCommit.fromRevspec(repo, revspec);
+      return annCommit.id();
+    } catch (err) {
+      if (err.toString().indexOf('not found') >= 0) {
+        throw new RevisionNotFound(this.name, revspec);
+      }
+      throw err;
+    }
   }
 
-  upsertBranch(branchName, revision) {
-    let repo = null;
-    let oid = null;
-
-    return this
-      .lookupCommit(revision)
-      .then(oid_ => {
-        oid = oid_;
-        return this.repo();
-      })
-      .then(repo_ => {
-        repo = repo_;
-        return repo.createBranch(branchName, oid, 1, this.sign(),
-                                 'Upsert branch');
-      })
-      .then(() => oid.tostrS());
+  async upsertBranch(branchName, revision) {
+    let oid = await this.lookupCommit(revision);
+    let repo = await this.repo();
+    await repo.createBranch(branchName, oid, 1, this.sign(), 'Upsert branch');
+    return oid.tostrS();
   }
 
-  getBranches() {
-    return this
-      .repo()
-      .then(repo => repo.getReferences(git.Reference.TYPE.LISTALL))
-      .then(references => {
-        return references
-          .filter(ref => ref.isBranch())
-          .map(ref => ref.name().replace(/refs\/heads\//, ''));
-      });
+  async getBranches() {
+    let repo = await this.repo();
+    let references = await repo.getReferences(git.Reference.TYPE.LISTALL);
+    return references
+      .filter(ref => ref.isBranch())
+      .map(ref => ref.name().replace(/refs\/heads\//, ''));
   }
 
-  getBranchRevision(branchName) {
-    return this
-      .repo()
-      .then(repo => repo.getBranchCommit(branchName))
-      .then(commit => commit.id().tostrS())
-      .catch(err => {
-        if (err.toString().indexOf('no reference found') >= 0) {
-          throw new InvalidBranchError(this.name, branchName);
-        }
-        throw err;
-      });
+  async getBranchRevision(branchName) {
+    let repo = await this.repo();
+
+    try {
+      let commit = await repo.getBranchCommit(branchName);
+      return commit.id().tostrS();
+    } catch (err) {
+      if (err.toString().indexOf('no reference found') >= 0) {
+        throw new InvalidBranchError(this.name, branchName);
+      }
+      throw err;
+    }
   }
 
-  deleteBranch(branchName) {
-    let repo = null;
-
-    return this
-      .repo()
-      .then(repo_ => {
-        repo = repo_;
-        return git.Branch.lookup(repo, branchName, git.Branch.BRANCH.LOCAL);
-      })
-      .then(ref => {
-        if (ref.isHead()) {
-          repo.detachHead();
-        }
-        return git.Branch.delete(ref);
-      })
-      .then(result => result == 0 ? 1 : 0)
-      .catch(err => {
-        if (err.toString().indexOf('Cannot locate') >= 0) {
-          throw new InvalidBranchError(this.name, branchName);
-        }
-      });
+  async deleteBranch(branchName) {
+    let repo = await this.repo();
+    let ref = null;
+    try {
+      ref = await git.Branch.lookup(repo, branchName, git.Branch.BRANCH.LOCAL);
+    } catch (err) {
+      if (err.toString().indexOf('Cannot locate') >= 0) {
+        throw new InvalidBranchError(this.name, branchName);
+      }
+    }
+    if (ref.isHead()) {
+      repo.detachHead();
+    }
+    let result = await git.Branch.delete(ref);
+    return result == 0 ? 1 : 0;
   }
 }
 
