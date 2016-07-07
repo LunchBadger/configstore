@@ -20,37 +20,25 @@ class LockedError extends CustomError {
  * @returns {Promise} The return value (or error) will be passed through from
  *   the function.
  */
-module.exports = function lock(lockPath, fn) {
-  let lockFd = null;
-  let result = undefined;
+module.exports = async function lock(lockPath, fn) {
+  let fd = null;
 
-  function unlock() {
-    if (lockFd) {
-      let fd = lockFd;
-      lockFd = null;
-      return fs.closeAsync(fd);
+  try {
+    fd = await fs.openAsync(lockPath, 'w');
+    await fs.flockAsync(fd, 'exnb');
+  } catch (err) {
+    if (err.code && err.code === 'EAGAIN') {
+      throw new LockedError(lockPath);
+    } else {
+      throw err;
     }
   }
 
-  return fs.openAsync(lockPath, 'w')
-    .then(fd => {
-      lockFd = fd;
-      return fs.flockAsync(lockFd, 'exnb');
-    })
-    .catch(err => {
-      if (err.code && err.code === 'EAGAIN') {
-        throw new LockedError(lockPath);
-      } else {
-        throw err;
-      }
-    })
-    .then(fn)
-    .then(result_ => {
-      result = result_;
-      return unlock();
-    })
-    .then(() => result)
-    .catch((err) => unlock().then(() => { throw err; }));
+  try {
+    return await fn();
+  } finally {
+    await fs.closeAsync(fd);
+  }
 };
 
 module.exports.LockedError = LockedError;
