@@ -104,7 +104,7 @@ class RepoManager {
   async repoExists(repoName) {
     let path = this.repoPath(repoName);
     try {
-      let stat = await fs.statAsync(path);
+      await fs.statAsync(path);
       return true;
     } catch (_) {
       return false;

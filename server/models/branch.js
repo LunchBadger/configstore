@@ -1,5 +1,5 @@
 'use strict';
 
-module.exports = function(Branch) {
+module.exports = function(_Branch) {
 
 };

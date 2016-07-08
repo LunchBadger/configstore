@@ -1,5 +1,5 @@
 'use strict';
 
-module.exports = function(Repo) {
+module.exports = function(_Repo) {
 
 };

@@ -2,7 +2,6 @@
 
 let supertest = require('supertest-as-promised');
 let app = require('../server/server');
-let assert = require('chai').assert;
 let RepoManager = require('../server/lib/gitrepo').RepoManager;
 
 describe('Repository API', function() {

@@ -7,15 +7,12 @@ let RepoManager = require('../server/lib/gitrepo').RepoManager;
 
 describe('Branch API', function() {
   let manager = new RepoManager(app.get('lunchBadger').repoPath);
-  let testRepo = null;
 
   beforeEach(async function() {
-    let repo = await manager.createRepo('test-config');
-    testRepo = repo;
+    await manager.createRepo('test-config');
   });
 
   afterEach(async function() {
-    testRepo = null;
     await manager.removeAllRepos();
   });
 
