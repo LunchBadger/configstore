@@ -8,4 +8,6 @@ RUN npm install
 COPY . /usr/src/app
 RUN npm run build
 
+ENV NODE_ENV production
+
 CMD [ "npm", "start" ]

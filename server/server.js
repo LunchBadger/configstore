@@ -1,5 +1,8 @@
 'use strict';
-require('longjohn');
+
+if (process.env.NODE_ENV !== 'production') {
+  require('longjohn');
+}
 
 let loopback = require('loopback');
 let boot = require('loopback-boot');
