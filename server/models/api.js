@@ -228,7 +228,7 @@ module.exports = function(Api) {
     ],
     http: {
       verb: 'get',
-      path: '/repos/:repoId/branches/:branchId/files/:fileName(*)'
+      path: '/repos/:repoId/branches/:branchId(*)/files/:fileName(*)'
     }
   });
 
