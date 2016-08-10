@@ -1,5 +1,5 @@
 {
-  "name": "Branch",
+  "name": "Environment",
   "base": "Model",
   "idInjection": true,
   "options": {

@@ -1,14 +1,15 @@
 'use strict';
 
 let Promise = require('bluebird');
+let debug = require('debug')('configstore:git');
 let fs = require('fs-ext');
 Promise.promisifyAll(fs);
 let git = require('nodegit');
 let path = require('path');
 let rimraf = Promise.promisify(require('rimraf'));
+
 let CustomError = require('./error').CustomError;
 let lock = require('./lock');
-let debug = require('debug')('configstore:git');
 
 class GitRepoError extends CustomError {}
 class RepoDoesNotExistError extends GitRepoError {
