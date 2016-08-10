@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://lunchbadger.com/schemas/project.json",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "dataSources": {
+      "type": "array",
+      "items": { "$ref": "definitions.json#/dataSource" }
+    },
+    "privateEndpoints": {
+      "type": "array",
+      "items": { "$ref": "definitions.json#/privateEndpoint" }
+    },
+    "privateModels": {
+      "type": "array",
+      "items": { "$ref": "definitions.json#/model" }
+    },
+    "apis": {
+      "type": "array",
+      "items": { "$ref": "definitions.json#/api" }
+    },
+    "portals": {
+      "type": "array",
+      "items": { "$ref": "definitions.json#/portal" }
+    },
+    "gateways": {
+      "type": "array",
+      "items": { "$ref": "definitions.json#/gateway" }
+    },
+    "publicEndpoints": {
+      "type": "array",
+      "items": { "$ref": "definitions.json#/publicEndpoint" }
+    },
+    "connections": {
+      "type": "array",
+      "items": { "$ref": "definitions.json#/connection" }
+    },
+    "states": {
+      "type": "array",
+      "items": { "$ref": "definitions.json#/state" }
+    }
+  },
+  "required": ["id", "name"],
+  "additionalProperties": false
+}

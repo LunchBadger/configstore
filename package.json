@@ -11,6 +11,7 @@
     "posttest": "nsp check"
   },
   "dependencies": {
+    "ajv": "^4.4.0",
     "bluebird": "^3.4.1",
     "compression": "^1.0.3",
     "cors": "^2.5.2",

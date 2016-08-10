@@ -22,6 +22,14 @@ app.start = () => {
   });
 };
 
+process.on('unhandledRejection', (reason, _p) => {
+  console.error(`Unhandled rejection ${reason.stack}`);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error(`Unhandled exception: ${err.stack}`);
+});
+
 // Bootstrap the application, configure models, datasources and middleware.
 // Sub-apps like REST API are mounted via boot scripts.
 boot(app, __dirname, (err) => {

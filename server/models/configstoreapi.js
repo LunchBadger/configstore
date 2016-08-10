@@ -1,9 +1,17 @@
 'use strict';
 
-const gitrepo = require('../lib/gitrepo');
+const ConfigValidator = require('../lib/configvalidator');
 const error = require('../lib/error');
+const gitrepo = require('../lib/gitrepo');
+
+const CONFIG_SCHEMA_DIR = 'server/schema';
 
 module.exports = function(ConfigStoreApi) {
+  const validator = new ConfigValidator(CONFIG_SCHEMA_DIR);
+  validator.addSchema('definitions');
+  validator.addSchema('project', /^project\.json$/);
+  validator.addSchema('forecast', /^forecast\.json$/);
+
   ConfigStoreApi.create = async function(data) {
     let repo = new this.app.models.Producer(data);
     if (!repo.isValid()) {
@@ -70,6 +78,17 @@ module.exports = function(ConfigStoreApi) {
       if (Object.keys(data).length < 1) {
         cb(error.badRequestError('Must specify some data'));
         return;
+      }
+
+      // Validate
+      for (const filePath in data) {
+        const fileName = filePath.split('/').pop();
+        if (!await validator.validate(fileName, data[filePath])) {
+          const errors = validator.errors.join('\n');
+          cb(error.badRequestError(`Validation of ${filePath} failed:\n` +
+                                   errors));
+          return;
+        }
       }
 
       let repo = await this._getRepo(producerId);
@@ -163,7 +182,7 @@ module.exports = function(ConfigStoreApi) {
     description: 'Create a new producer.',
     http: {
       verb: 'post',
-      path: '/producers'
+      path: '/'
     },
     accepts: [
       {
@@ -187,7 +206,7 @@ module.exports = function(ConfigStoreApi) {
     description: 'Check whether a producer exists.',
     http: {
       verb: 'get',
-      path: '/producers/:id/exists'
+      path: '/:id/exists'
     },
     accepts: [
       {
@@ -207,7 +226,7 @@ module.exports = function(ConfigStoreApi) {
     description: 'Retrieve the information for the given producer.',
     http: {
       verb: 'get',
-      path: '/producers/:id'
+      path: '/:id'
     },
     accepts: [
       {
@@ -228,7 +247,7 @@ module.exports = function(ConfigStoreApi) {
     description: 'Retrieve information on all existing producers.',
     http: {
       verb: 'get',
-      path: '/producers/'
+      path: '/'
     },
     returns: {
       arg: 'data',
@@ -241,7 +260,7 @@ module.exports = function(ConfigStoreApi) {
     description: 'Delete a producer.',
     http: {
       verb: 'del',
-      path: '/producers/:id'
+      path: '/:id'
     },
     accepts: [
       {
@@ -262,7 +281,7 @@ module.exports = function(ConfigStoreApi) {
     description: 'Add a new revision, updating the given files.',
     http: {
       verb: 'patch',
-      path: '/producers/:producerId/envs/:envId/files'
+      path: '/:producerId/envs/:envId/files'
     },
     accepts: [
       {
@@ -310,7 +329,7 @@ module.exports = function(ConfigStoreApi) {
     description: 'Retrieve a file from the given environment',
     http: {
       verb: 'get',
-      path: '/producers/:producerId/envs/:envId/files/:fileName(*)'
+      path: '/:producerId/envs/:envId/files/:fileName(*)'
     },
     accepts: [
       {
@@ -358,7 +377,7 @@ module.exports = function(ConfigStoreApi) {
     description: 'Create or update an environment',
     http: {
       verb: 'put',
-      path: '/producers/:producerId/envs/:envId'
+      path: '/:producerId/envs/:envId'
     },
     accepts: [
       {
@@ -398,7 +417,7 @@ module.exports = function(ConfigStoreApi) {
     description: 'Get environment information',
     http: {
       verb: 'get',
-      path: '/producers/:producerId/envs/:envId'
+      path: '/:producerId/envs/:envId'
     },
     accepts: [
       {
@@ -429,7 +448,7 @@ module.exports = function(ConfigStoreApi) {
     description: 'Delete environment',
     http: {
       verb: 'del',
-      path: '/producers/:producerId/envs/:envId'
+      path: '/:producerId/envs/:envId'
     },
     accepts: [
       {
