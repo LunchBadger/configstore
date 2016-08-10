@@ -1,5 +1,5 @@
 {
-  "name": "api",
+  "name": "ConfigStoreApi",
   "base": "Model",
   "idInjection": false,
   "http": {
