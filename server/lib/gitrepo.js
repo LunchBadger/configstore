@@ -6,6 +6,7 @@ let fs = require('fs-ext');
 Promise.promisifyAll(fs);
 let git = require('nodegit');
 let path = require('path');
+let mkdirp = Promise.promisify(require('mkdirp'));
 let rimraf = Promise.promisify(require('rimraf'));
 
 let CustomError = require('./error').CustomError;
@@ -207,8 +208,6 @@ class GitRepo {
       // Check that we're on the correct revision as per given parentRevision
       let parents = [];
       if (parentRevision && headCommit) {
-        debug(repo, parentRevision, parentRevision.length);
-
         let parentCommit = undefined;
         try {
           parentCommit = await git.Commit.lookupPrefix(repo, parentRevision,
@@ -225,7 +224,8 @@ class GitRepo {
         }
         parents.push(parentCommit);
       } else if (parentRevision && !headCommit) {
-        throw new GitRepoError('Given parent revision is invalid');
+        throw new GitRepoError(
+          'Parent revision is given, but the environment is new');
       } else if (!parentRevision && headCommit) {
         throw new OptimisticConcurrencyError(this.name, branchName);
       }
@@ -235,7 +235,10 @@ class GitRepo {
       let allFiles = [];
       for (let fname in files) {
         let fullPath = path.join(this.path, fname);
-        allFiles.push(fs.writeFileAsync(fullPath, files[fname]));
+        allFiles.push((async () => {
+          await mkdirp(path.dirname(fullPath));
+          await fs.writeFileAsync(fullPath, files[fname]);
+        })());
       }
       await Promise.all(allFiles);
 
