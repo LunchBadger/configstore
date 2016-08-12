@@ -1,9 +1,9 @@
 {
-  "name": "api",
+  "name": "ConfigStoreApi",
   "base": "Model",
   "idInjection": false,
   "http": {
-    "path": "api"
+    "path": "producers"
   },
   "properties": {},
   "validations": [],

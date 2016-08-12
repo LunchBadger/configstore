@@ -1,10 +1,18 @@
 'use strict';
 
-const gitrepo = require('../lib/gitrepo');
+const ConfigValidator = require('../lib/configvalidator');
 const error = require('../lib/error');
+const gitrepo = require('../lib/gitrepo');
 
-module.exports = function(Api) {
-  Api.create = async function(data) {
+const CONFIG_SCHEMA_DIR = 'server/schema';
+
+module.exports = function(ConfigStoreApi) {
+  const validator = new ConfigValidator(CONFIG_SCHEMA_DIR);
+  validator.addSchema('definitions');
+  validator.addSchema('project', /^project\.json$/);
+  validator.addSchema('forecast', /^forecast\.json$/);
+
+  ConfigStoreApi.create = async function(data) {
     let repo = new this.app.models.Producer(data);
     if (!repo.isValid()) {
       throw error.badRequestError('Invalid Producer format');
@@ -13,11 +21,11 @@ module.exports = function(Api) {
     return repo;
   };
 
-  Api.exists = async function(id) {
+  ConfigStoreApi.exists = async function(id) {
     return await this.manager.repoExists(id);
   };
 
-  Api._getRepo = async function(id) {
+  ConfigStoreApi._getRepo = async function(id) {
     try {
       return await this.manager.getRepo(id);
     } catch (err) {
@@ -28,7 +36,7 @@ module.exports = function(Api) {
     }
   };
 
-  Api._getRepoInfo = async function(repo) {
+  ConfigStoreApi._getRepoInfo = async function(repo) {
     let branches = await repo.getBranches();
     let branchRevs = await Promise.all(branches.map(async branch => {
       return [branch, await repo.getBranchRevision(branch)];
@@ -45,22 +53,23 @@ module.exports = function(Api) {
     };
   };
 
-  Api.getOne = async function(id) {
+  ConfigStoreApi.getOne = async function(id) {
     let repo = await this._getRepo(id);
     return await this._getRepoInfo(repo);
   };
 
-  Api.getAll = async function() {
+  ConfigStoreApi.getAll = async function() {
     let repos = await this.manager.getAllRepos();
     return await Promise.all(repos.map(repo => this._getRepoInfo(repo)));
   };
 
-  Api.delete = async function(id) {
+  ConfigStoreApi.delete = async function(id) {
     let deleted = await this.manager.removeRepo(id);
     return {count: deleted ? 1 : 0};
   };
 
-  Api.updateEnvFiles = function(producerId, envId, data, parentRevision, cb) {
+  ConfigStoreApi.updateEnvFiles = function(producerId, envId, data,
+                                           parentRevision, cb) {
     // Note that this method does not return a Promise, since its return value
     // ends up as the value of the ETag header. Setting a header based on the
     // response value only seems to work when calling the cb, not through the
@@ -69,6 +78,17 @@ module.exports = function(Api) {
       if (Object.keys(data).length < 1) {
         cb(error.badRequestError('Must specify some data'));
         return;
+      }
+
+      // Validate
+      for (const filePath in data) {
+        const fileName = filePath.split('/').pop();
+        if (!await validator.validate(fileName, data[filePath])) {
+          const errors = validator.errors.join('\n');
+          cb(error.badRequestError(`Validation of ${filePath} failed:\n` +
+                                   errors));
+          return;
+        }
       }
 
       let repo = await this._getRepo(producerId);
@@ -86,7 +106,7 @@ module.exports = function(Api) {
     })();
   };
 
-  Api.downloadFile = function(producerId, envId, fileName, cb) {
+  ConfigStoreApi.downloadFile = function(producerId, envId, fileName, cb) {
     (async () => {
       let repo = await this._getRepo(producerId);
 
@@ -103,7 +123,7 @@ module.exports = function(Api) {
     })();
   };
 
-  Api.upsertEnv = async function(producerId, envId, data) {
+  ConfigStoreApi.upsertEnv = async function(producerId, envId, data) {
     if (data.id && data.id != envId) {
       throw error.badRequestError('Invalid Environment format');
     }
@@ -126,7 +146,7 @@ module.exports = function(Api) {
     }
   };
 
-  Api.getEnv = async function(producerId, envId) {
+  ConfigStoreApi.getEnv = async function(producerId, envId) {
     let repo = await this._getRepo(producerId);
     let revision = undefined;
     try {
@@ -144,7 +164,7 @@ module.exports = function(Api) {
     };
   };
 
-  Api.deleteEnv = async function(producerId, envId) {
+  ConfigStoreApi.deleteEnv = async function(producerId, envId) {
     let repo = await this._getRepo(producerId);
     let deleted = undefined;
     try {
@@ -158,11 +178,11 @@ module.exports = function(Api) {
     return {count: deleted ? 1 : 0};
   };
 
-  Api.remoteMethod('create', {
+  ConfigStoreApi.remoteMethod('create', {
     description: 'Create a new producer.',
     http: {
       verb: 'post',
-      path: '/producers'
+      path: '/'
     },
     accepts: [
       {
@@ -182,11 +202,11 @@ module.exports = function(Api) {
     ]
   });
 
-  Api.remoteMethod('exists', {
+  ConfigStoreApi.remoteMethod('exists', {
     description: 'Check whether a producer exists.',
     http: {
       verb: 'get',
-      path: '/producers/:id/exists'
+      path: '/:id/exists'
     },
     accepts: [
       {
@@ -202,11 +222,11 @@ module.exports = function(Api) {
     }
   });
 
-  Api.remoteMethod('getOne', {
+  ConfigStoreApi.remoteMethod('getOne', {
     description: 'Retrieve the information for the given producer.',
     http: {
       verb: 'get',
-      path: '/producers/:id'
+      path: '/:id'
     },
     accepts: [
       {
@@ -223,11 +243,11 @@ module.exports = function(Api) {
     },
   });
 
-  Api.remoteMethod('getAll', {
+  ConfigStoreApi.remoteMethod('getAll', {
     description: 'Retrieve information on all existing producers.',
     http: {
       verb: 'get',
-      path: '/producers/'
+      path: '/'
     },
     returns: {
       arg: 'data',
@@ -236,11 +256,11 @@ module.exports = function(Api) {
     }
   });
 
-  Api.remoteMethod('delete', {
+  ConfigStoreApi.remoteMethod('delete', {
     description: 'Delete a producer.',
     http: {
       verb: 'del',
-      path: '/producers/:id'
+      path: '/:id'
     },
     accepts: [
       {
@@ -257,11 +277,11 @@ module.exports = function(Api) {
     }
   });
 
-  Api.remoteMethod('updateEnvFiles', {
+  ConfigStoreApi.remoteMethod('updateEnvFiles', {
     description: 'Add a new revision, updating the given files.',
     http: {
       verb: 'patch',
-      path: '/producers/:producerId/envs/:envId/files'
+      path: '/:producerId/envs/:envId/files'
     },
     accepts: [
       {
@@ -305,11 +325,11 @@ module.exports = function(Api) {
     ]
   });
 
-  Api.remoteMethod('downloadFile', {
+  ConfigStoreApi.remoteMethod('downloadFile', {
     description: 'Retrieve a file from the given environment',
     http: {
       verb: 'get',
-      path: '/producers/:producerId/envs/:envId/files/:fileName(*)'
+      path: '/:producerId/envs/:envId/files/:fileName(*)'
     },
     accepts: [
       {
@@ -353,11 +373,11 @@ module.exports = function(Api) {
     ]
   });
 
-  Api.remoteMethod('upsertEnv', {
+  ConfigStoreApi.remoteMethod('upsertEnv', {
     description: 'Create or update an environment',
     http: {
       verb: 'put',
-      path: '/producers/:producerId/envs/:envId'
+      path: '/:producerId/envs/:envId'
     },
     accepts: [
       {
@@ -393,11 +413,11 @@ module.exports = function(Api) {
     ]
   });
 
-  Api.remoteMethod('getEnv', {
+  ConfigStoreApi.remoteMethod('getEnv', {
     description: 'Get environment information',
     http: {
       verb: 'get',
-      path: '/producers/:producerId/envs/:envId'
+      path: '/:producerId/envs/:envId'
     },
     accepts: [
       {
@@ -424,11 +444,11 @@ module.exports = function(Api) {
     ]
   });
 
-  Api.remoteMethod('deleteEnv', {
+  ConfigStoreApi.remoteMethod('deleteEnv', {
     description: 'Delete environment',
     http: {
       verb: 'del',
-      path: '/producers/:producerId/envs/:envId'
+      path: '/:producerId/envs/:envId'
     },
     accepts: [
       {

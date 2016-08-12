@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://lunchbadger.com/schemas/forecast.json",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "api": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "plans": {
+          "type": "array",
+          "items": { "$ref": "definitions.json#/plan" }
+        },
+        "upgrades": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "fromPlanId": {
+                "type": "string"
+              },
+              "toPlanId": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              },
+              "downgrade": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "required": ["id", "date"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["id", "name"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["id", "api"],
+  "additionalProperties": false
+}

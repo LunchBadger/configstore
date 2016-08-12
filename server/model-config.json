@@ -13,6 +13,10 @@
       "./mixins"
     ]
   },
+  "ConfigStoreApi": {
+    "dataSource": null,
+    "public": true
+  },
   "Producer": {
     "dataSource": null,
     "public": false
@@ -20,9 +24,5 @@
   "Environment": {
     "dataSource": null,
     "public": false
-  },
-  "api": {
-    "dataSource": null,
-    "public": true
   }
 }
