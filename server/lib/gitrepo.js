@@ -262,7 +262,17 @@ class GitRepo {
 
   async getFile(branchName, fileName) {
     let repo = await this.repo();
-    let commit = await repo.getBranchCommit(branchName);
+
+    let commit = undefined;
+    try {
+      commit = await repo.getBranchCommit(branchName);
+    } catch (err) {
+      if (err.toString().indexOf('no reference found') >= 0) {
+        throw new InvalidBranchError(this.name, branchName);
+      }
+      throw err;
+    }
+
     let chksum = commit.id().tostrS();
     let tree = await commit.getTree();
 

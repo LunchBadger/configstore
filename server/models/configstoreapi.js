@@ -116,6 +116,8 @@ module.exports = function(ConfigStoreApi) {
       } catch (err) {
         if (err instanceof gitrepo.FileNotFound) {
           cb(error.notFoundError(`File ${fileName} does not exist`));
+        } else if (err instanceof gitrepo.InvalidBranchError) {
+          cb(error.notFoundError(`Environment ${envId} does not exist`));
         } else {
           cb(err);
         }
