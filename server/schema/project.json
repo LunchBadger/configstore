@@ -3,12 +3,6 @@
   "id": "http://lunchbadger.com/schemas/project.json",
   "type": "object",
   "properties": {
-    "id": {
-      "type": "string"
-    },
-    "name": {
-      "type": "string"
-    },
     "dataSources": {
       "type": "array",
       "items": { "$ref": "definitions.json#/dataSource" }
@@ -46,6 +40,5 @@
       "items": { "$ref": "definitions.json#/state" }
     }
   },
-  "required": ["id", "name"],
   "additionalProperties": false
 }

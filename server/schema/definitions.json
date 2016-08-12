@@ -425,15 +425,12 @@
   "state": {
     "type": "object",
     "properties": {
-      "id": {
-        "type": "string"
-      },
       "key": {
         "type": "string"
       },
       "value": {}
     },
-    "required": ["id", "key", "value"],
+    "required": ["key", "value"],
     "additionalProperties": false
   }
 }
