@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "main": "server/server.js",
   "scripts": {
-    "dev": "babel-node .",
+    "dev": "scripts/createDemo.sh && DEBUG=configstore:* babel-node .",
     "start": "node dist/server/server.js",
+    "build": "scripts/build.sh",
     "pretest": "eslint .",
-    "build": "./build.sh",
-    "test": "./build.sh && mocha dist/tests",
+    "test": "mocha --compilers js:babel-register tests",
     "posttest": "nsp check"
   },
   "dependencies": {

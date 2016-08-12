@@ -31,8 +31,8 @@ class ConfigValidator {
       return (fileName.match(pattern) !== null);
     });
     if (!match) {
-      this.errors.push(`Filename ${fileName} is not allowed`);
-      return false;
+      // Not one of the files that needs to be validated
+      return true;
     }
 
     let json = undefined;

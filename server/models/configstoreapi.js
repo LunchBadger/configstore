@@ -108,9 +108,8 @@ module.exports = function(ConfigStoreApi) {
 
   ConfigStoreApi.downloadFile = function(producerId, envId, fileName, cb) {
     (async () => {
-      let repo = await this._getRepo(producerId);
-
       try {
+        let repo = await this._getRepo(producerId);
         let [content, chksum] = await repo.getFile('env/' + envId, fileName);
         cb(null, content, chksum, 'application/octet-stream');
       } catch (err) {
@@ -118,6 +117,8 @@ module.exports = function(ConfigStoreApi) {
           cb(error.notFoundError(`File ${fileName} does not exist`));
         } else if (err instanceof gitrepo.InvalidBranchError) {
           cb(error.notFoundError(`Environment ${envId} does not exist`));
+        } else if (err instanceof gitrepo.RepoDoesNotExistError) {
+          cb(error.notFoundError(`Producer ${producerId} does not exist`));
         } else {
           cb(err);
         }
