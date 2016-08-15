@@ -3,6 +3,7 @@
     "loopback#favicon": {}
   },
   "initial": {
+    "./middleware/accesslog": {},
     "compression": {},
     "cors": {
       "params": {
