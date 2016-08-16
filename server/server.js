@@ -6,6 +6,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 let loopback = require('loopback');
 let boot = require('loopback-boot');
+
 let app = module.exports = loopback();
 
 app.start = () => {

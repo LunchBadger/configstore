@@ -10,7 +10,6 @@ module.exports = function(ConfigStoreApi) {
   const validator = new ConfigValidator(CONFIG_SCHEMA_DIR);
   validator.addSchema('definitions');
   validator.addSchema('project', /^project\.json$/);
-  validator.addSchema('forecast', /^forecast\.json$/);
 
   ConfigStoreApi.create = async function(data) {
     let repo = new this.app.models.Producer(data);
