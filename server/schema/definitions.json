@@ -316,7 +316,7 @@
       "name": {
         "type": "string"
       },
-      "url": {
+      "path": {
         "type": "string"
       },
       "itemOrder": {
@@ -324,7 +324,7 @@
         "default": 0
       }
     },
-    "required": ["id", "name", "url", "itemOrder"],
+    "required": ["id", "name", "path", "itemOrder"],
     "additionalProperties": false
   },
   "portal": {
