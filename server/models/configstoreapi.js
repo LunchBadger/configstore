@@ -1,10 +1,12 @@
 'use strict';
 
+const path = require('path');
+
 const ConfigValidator = require('../lib/configvalidator');
 const error = require('../lib/error');
 const gitrepo = require('../lib/gitrepo');
 
-const CONFIG_SCHEMA_DIR = 'server/schema';
+const CONFIG_SCHEMA_DIR = path.resolve(__dirname, '../schema');
 
 module.exports = function(ConfigStoreApi) {
   const validator = new ConfigValidator(CONFIG_SCHEMA_DIR);

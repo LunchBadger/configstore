@@ -1,9 +1,9 @@
 {
   "name": "configstore",
   "version": "1.0.0",
-  "main": "server/server.js",
+  "main": "dist/server/server.js",
   "scripts": {
-    "dev": "scripts/createDemo.sh && DEBUG=configstore:* babel-node .",
+    "dev": "scripts/createDemo.sh && DEBUG=configstore:* babel-node server/server.js",
     "start": "node dist/server/server.js",
     "build": "scripts/build.sh",
     "pretest": "eslint .",
@@ -47,6 +47,10 @@
     "type": "",
     "url": ""
   },
+  "files": [
+    "dist/",
+    "server/"
+  ],
   "license": "UNLICENSED",
   "description": "configstore"
 }
