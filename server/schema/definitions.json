@@ -360,8 +360,9 @@
       "name": {
         "type": "string"
       },
-      "rootPath": {
-        "type": "string"
+      "dnsPrefix": {
+        "type": "string",
+        "pattern": "^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,22}[a-zA-Z0-9])$"
       },
       "itemOrder": {
         "type": "number",
@@ -403,7 +404,7 @@
         }
       }
     },
-    "required": ["id", "name", "rootPath", "itemOrder"],
+    "required": ["id", "name", "dnsPrefix", "itemOrder"],
     "additionalProperties": false
   },
   "connection": {
