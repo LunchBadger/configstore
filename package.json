@@ -1,6 +1,6 @@
 {
   "name": "configstore",
-  "version": "1.0.0",
+  "version": "0.0.2",
   "main": "dist/server/server.js",
   "scripts": {
     "dev": "scripts/createDemo.sh && DEBUG=configstore:* babel-node server/server.js",
