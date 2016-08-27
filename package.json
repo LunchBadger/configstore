@@ -3,12 +3,12 @@
   "version": "0.0.2",
   "main": "dist/server/server.js",
   "scripts": {
-    "dev": "scripts/createDemo.sh && DEBUG=configstore:* babel-node server/server.js",
-    "start": "node dist/server/server.js",
-    "build": "scripts/build.sh",
+    "start": "scripts/createDemo.sh && DEBUG=configstore:* babel-node server/server.js",
+    "dist": "scripts/build.sh",
     "pretest": "eslint .",
     "test": "mocha --compilers js:babel-register tests",
-    "posttest": "nsp check"
+    "posttest": "nsp check",
+    "clean": "rimraf dist"
   },
   "dependencies": {
     "ajv": "^4.4.0",
