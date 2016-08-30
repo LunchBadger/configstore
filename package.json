@@ -1,9 +1,10 @@
 {
   "name": "configstore",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "dist/server/server.js",
   "scripts": {
     "start": "scripts/createDemo.sh && DEBUG=configstore:* babel-node server/server.js",
+    "start:dist": "DEBUG=configstore:* node dist/server/server.js",
     "dist": "scripts/build.sh",
     "pretest": "eslint .",
     "test": "mocha --compilers js:babel-register tests",
