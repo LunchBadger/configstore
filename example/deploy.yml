@@ -4,6 +4,7 @@ metadata:
   name: configstore
 spec:
   replicas: 1
+  revisionHistoryLimit: 1
   strategy:
     type: Recreate
   template:
@@ -13,7 +14,7 @@ spec:
     spec:
       containers:
         - name: configstore
-          image: localhost:31000/configstore:0.0.2
+          image: localhost:31000/configstore:0.0.3
           imagePullPolicy: Always
           ports:
             - containerPort: 3001
