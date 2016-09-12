@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: configstore
-          image: localhost:31000/configstore:0.0.3
+          image: localhost:31000/configstore:0.0.4
           imagePullPolicy: Always
           ports:
             - containerPort: 3001
@@ -42,16 +42,3 @@ spec:
   selector:
     run: configstore
   type: ClusterIP
----
-apiVersion: extensions/v1beta1
-kind: Ingress
-metadata:
-  name: configstore
-spec:
-  rules:
-    - host: api.lunchbadger.com
-      http:
-        paths:
-          - backend:
-              serviceName: configstore
-              servicePort: 3001
