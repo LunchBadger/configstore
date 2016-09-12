@@ -136,7 +136,7 @@ class RepoManager {
     if (! await this.repoExists(repoName)) {
       let path = this.repoPath(repoName);
       await fs.mkdirAsync(this.repoPath(repoName));
-      return await git.Repository.init(path, 0);
+      await git.Repository.init(path, 0);
     }
     return await this.getRepo(repoName);
   }

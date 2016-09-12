@@ -37,6 +37,14 @@ module.exports = function(ConfigStoreApi) {
     }
   };
 
+  ConfigStoreApi._getOrCreateRepo = async function(id) {
+    if (await this.manager.repoExists(id)) {
+      return await this.manager.getRepo(id);
+    } else {
+      return await this.manager.createRepo(id);
+    }
+  };
+
   ConfigStoreApi._getRepoInfo = async function(repo) {
     let branches = await repo.getBranches();
     let branchRevs = await Promise.all(branches.map(async branch => {
@@ -92,7 +100,7 @@ module.exports = function(ConfigStoreApi) {
         }
       }
 
-      let repo = await this._getRepo(producerId);
+      let repo = await this._getOrCreateRepo(producerId);
       try {
         let rev = await repo.updateBranchFiles('env/' + envId, parentRevision,
                                                data);
