@@ -3,7 +3,7 @@
   "version": "0.0.4",
   "main": "dist/server/server.js",
   "scripts": {
-    "start": "scripts/createDemo.sh && DEBUG=configstore:* babel-node server/server.js",
+    "start": "DEBUG=configstore:* babel-node server/server.js",
     "start:dist": "DEBUG=configstore:* node dist/server/server.js",
     "dist": "scripts/build.sh",
     "pretest": "eslint .",
