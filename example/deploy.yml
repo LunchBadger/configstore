@@ -21,6 +21,11 @@ spec:
           volumeMounts:
             - mountPath: /var/configstore
               name: data
+          resources:
+            requests:
+              memory: "768Mi"
+            limits:
+              memory: "768Mi"
       volumes:
         - name: data
           awsElasticBlockStore:
