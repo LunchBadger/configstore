@@ -170,6 +170,12 @@ class GitRepo {
     return this._repo;
   }
 
+  cleanup() {
+    if (this._repo) {
+      this._repo.free();
+    }
+  }
+
   sign() {
     let now = new Date();
     return git.Signature.create('LunchBadger', 'admin@lunchbadger.com',

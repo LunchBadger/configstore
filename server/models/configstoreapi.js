@@ -18,7 +18,8 @@ module.exports = function(ConfigStoreApi) {
     if (!repo.isValid()) {
       throw error.badRequestError('Invalid Producer format');
     }
-    await this.manager.createRepo(repo.id);
+    let repoObj = await this.manager.createRepo(repo.id);
+    repoObj.cleanup();
     return repo;
   };
 
@@ -64,12 +65,21 @@ module.exports = function(ConfigStoreApi) {
 
   ConfigStoreApi.getOne = async function(id) {
     let repo = await this._getRepo(id);
-    return await this._getRepoInfo(repo);
+    try {
+      return await this._getRepoInfo(repo);
+    } finally {
+      repo.cleanup();
+    }
   };
 
   ConfigStoreApi.getAll = async function() {
     let repos = await this.manager.getAllRepos();
-    return await Promise.all(repos.map(repo => this._getRepoInfo(repo)));
+    try {
+      return await Promise.all(repos.map(repo => this._getRepoInfo(repo)));
+    } finally {
+      repos.forEach(repo => repo.cleanup());
+    }
+    return result;
   };
 
   ConfigStoreApi.delete = async function(id) {
@@ -111,14 +121,17 @@ module.exports = function(ConfigStoreApi) {
         } else {
           cb(err);
         }
+      } finally {
+        repo.cleanup();
       }
     })();
   };
 
   ConfigStoreApi.downloadFile = function(producerId, envId, fileName, cb) {
     (async () => {
+      let repo = null;
       try {
-        let repo = await this._getRepo(producerId);
+        repo = await this._getRepo(producerId);
         let [content, chksum] = await repo.getFile('env/' + envId, fileName);
         cb(null, content, chksum, 'application/octet-stream');
       } catch (err) {
@@ -130,6 +143,10 @@ module.exports = function(ConfigStoreApi) {
           cb(error.notFoundError(`Producer ${producerId} does not exist`));
         } else {
           cb(err);
+        }
+      } finally {
+        if (repo) {
+          repo.cleanup();
         }
       }
     })();
@@ -155,6 +172,8 @@ module.exports = function(ConfigStoreApi) {
         throw error.badRequestError(err.message);
       }
       throw err;
+    } finally {
+      repo.cleanup();
     }
   };
 
@@ -168,6 +187,8 @@ module.exports = function(ConfigStoreApi) {
         throw error.notFoundError(err.message);
       }
       throw err;
+    } finally {
+      repo.cleanup();
     }
 
     return {
@@ -186,6 +207,8 @@ module.exports = function(ConfigStoreApi) {
         throw error.notFoundError(err.message);
       }
       throw err;
+    } finally {
+      repo.cleanup();
     }
     return {count: deleted ? 1 : 0};
   };
