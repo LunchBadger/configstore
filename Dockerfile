@@ -8,6 +8,7 @@ RUN npm install
 COPY . /usr/src/app
 RUN npm run dist
 
+RUN mkdir -p /var/configstore
 ENV NODE_ENV production
 
 CMD [ "npm", "run", "start:dist" ]
