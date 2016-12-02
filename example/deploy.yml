@@ -14,10 +14,10 @@ spec:
     spec:
       containers:
         - name: configstore
-          image: localhost:31000/configstore:0.0.5
+          image: 410240865662.dkr.ecr.us-west-2.amazonaws.com/configstore:0.0.6
           imagePullPolicy: Always
           ports:
-            - containerPort: 3001
+            - containerPort: 3002
           volumeMounts:
             - mountPath: /var/configstore
               name: data
@@ -29,7 +29,7 @@ spec:
       volumes:
         - name: data
           awsElasticBlockStore:
-            volumeID: vol-8eb7a23b
+            volumeID: vol-05370cb1
             fsType: ext4
       nodeSelector:
         lunchbadger.com/node-type: worker
@@ -42,8 +42,22 @@ metadata:
     run: configstore
 spec:
   ports:
-    - port: 3001
+    - port: 80
+      targetPort: 3002
       protocol: TCP
   selector:
     run: configstore
   type: ClusterIP
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: configstore
+spec:
+  rules:
+  - host: api.lunchbadger.com
+    http:
+      paths:
+      - backend:
+          serviceName: configstore
+          servicePort: 80
