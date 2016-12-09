@@ -11,6 +11,7 @@
     "comma-dangle": "off",
     "no-var": "error",
     "no-unused-vars": ["error", {
+      "varsIgnorePattern": "^_.*",
       "argsIgnorePattern": "^_.*",
       "args": "all"
     }],

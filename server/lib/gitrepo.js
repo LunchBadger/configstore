@@ -205,7 +205,7 @@ class GitRepo {
           headCommit = await repo.getHeadCommit();
         } catch (err) {
           if (err.toString().indexOf('no reference found') >= 0) {
-            throw new GitRepoError('Invalid branch');
+            throw new InvalidBranchError(repo.name, branchName);
           }
           throw err;
         }
@@ -217,7 +217,7 @@ class GitRepo {
         let parentCommit = undefined;
         try {
           parentCommit = await git.Commit.lookupPrefix(repo, parentRevision,
-                                                 parentRevision.length);
+                                                       parentRevision.length);
         } catch (err) {
           if (err.toString().indexOf('Unable to parse OID') > 0) {
             throw new OptimisticConcurrencyError(this.name, branchName);
@@ -376,6 +376,7 @@ class GitRepo {
 module.exports = {
   RepoManager,
   GitRepoError,
+  GitRepo,
   RepoDoesNotExistError,
   OperationInProgress,
   OptimisticConcurrencyError,
