@@ -5,8 +5,9 @@ chai.use(require('chai-as-promised'));
 const {assert} = chai;
 
 const bluebird = require('bluebird');
-const fs = require('fs');
 const exec = bluebird.promisify(require('child_process').exec);
+const fs = require('fs');
+const path = require('path');
 const rimraf = bluebird.promisify(require('rimraf'));
 
 const gitrepo = require('../server/lib/gitrepo');
@@ -312,6 +313,27 @@ describe('GitRepo', function() {
           'foo.txt': 'Second revision of first file!',
           'newfile.txt': 'This is a new file'
         }), gitrepo.InvalidBranchError);
+      });
+    });
+
+    describe('setConfigVariables()', function() {
+      it('should set config variables', async function() {
+        let cfgPath = path.join(repo.path, '.git/config');
+
+        let config = fs.readFileSync(cfgPath, 'utf-8');
+        assert.isFalse(config.includes('denycurrentbranch'));
+        assert.isFalse(config.includes('verbosity'));
+
+        await repo.setConfigVariables({
+          'receive.denycurrentbranch': 'ignore',
+          'merge.verbosity': 1
+        });
+
+        config = fs.readFileSync(cfgPath, 'utf-8');
+        assert.isTrue(config.includes('[receive]'));
+        assert.isTrue(config.includes('denycurrentbranch = ignore'));
+        assert.isTrue(config.includes('[merge]'));
+        assert.isTrue(config.includes('verbosity = 1'));
       });
     });
   });

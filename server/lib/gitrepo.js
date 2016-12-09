@@ -371,6 +371,29 @@ class GitRepo {
       return result == 0 ? 1 : 0;
     });
   }
+
+  async setConfigVariables(data) {
+    return await lock(this.lockPath, async () => {
+      let repo = await this.repo();
+      let config = await repo.config();
+
+      for (let key in data) {
+        let value = data[key];
+
+        switch (typeof value) {
+          case 'number':
+            config.setInt64(key, value);
+            break;
+          case 'string':
+            await config.setString(key, value);
+            break;
+          default:
+            throw new GitRepoError(`Invalid config option value for "${key}"`);
+            break;
+        }
+      }
+    });
+  }
 }
 
 module.exports = {

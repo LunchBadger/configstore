@@ -18,7 +18,7 @@ module.exports = function(ConfigStoreApi) {
     if (!repo.isValid()) {
       throw error.badRequestError('Invalid Producer format');
     }
-    let repoObj = await this.manager.createRepo(repo.id);
+    let repoObj = await this._createRepo(repo.id);
     repoObj.cleanup();
     return repo;
   };
@@ -38,11 +38,19 @@ module.exports = function(ConfigStoreApi) {
     }
   };
 
+  ConfigStoreApi._createRepo = async function(id) {
+    let repo = await this.manager.createRepo(id);
+    repo.setConfigVariables({
+      'receive.denycurrentbranch': 'ignore'
+    });
+    return repo;
+  };
+
   ConfigStoreApi._getOrCreateRepo = async function(id) {
     if (await this.manager.repoExists(id)) {
       return await this.manager.getRepo(id);
     } else {
-      return await this.manager.createRepo(id);
+      return await this._createRepo(id);
     }
   };
 
