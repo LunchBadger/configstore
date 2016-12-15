@@ -10,8 +10,10 @@ clients.
 */
 
 const path = require('path');
-const spawn = require('child_process').spawn;
+const {spawn, exec} = require('child_process');
 const express = require('express');
+const passport = require('passport');
+const {BasicStrategy} = require('passport-http');
 
 const SERVICES = ['git-upload-pack', 'git-receive-pack'];
 
@@ -19,6 +21,11 @@ module.exports = function getRouter(repoPath) {
   const gitServer = new GitServer(repoPath);
 
   const router = express.Router();
+
+  passport.use(new BasicStrategy({passReqToCallback: true},
+                                 gitServer.checkGitAccessKey.bind(gitServer)));
+
+  router.use('/:repo', passport.authenticate('basic', {session: false}));
   router.get('/:repo/info/refs', gitServer.getInfoRefs.bind(gitServer));
   router.post('/:repo/:service', gitServer.serviceRpc.bind(gitServer));
 
@@ -59,6 +66,27 @@ class GitServer {
 
     sendHeaders(res, `application/x-${service}-result`);
     runService(this.repoPath, service, ['--stateless-rpc'], req, res);
+  }
+
+  checkGitAccessKey(req, username, password, done) {
+    if (username !== 'git') {
+      return done(null, false);
+    }
+
+    const repoPath = path.join(this.repoPath, req.params.repo);
+    exec('git config --get lunchbadger.accesskey', {cwd: repoPath},
+      (error, stdout) => {
+        if (error) {
+          console.log(error);
+          return done(new Error('failed to validate credentials'));
+        }
+
+        if (stdout.trim() !== password) {
+          return done(null, false);
+        }
+
+        return done(null, true);
+      });
   }
 }
 

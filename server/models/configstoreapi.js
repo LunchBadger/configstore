@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const path = require('path');
 
 const ConfigValidator = require('../lib/configvalidator');
@@ -40,8 +41,10 @@ module.exports = function(ConfigStoreApi) {
 
   ConfigStoreApi._createRepo = async function(id) {
     let repo = await this.manager.createRepo(id);
+    let key = crypto.randomBytes(16).toString('hex');
     repo.setConfigVariables({
-      'receive.denycurrentbranch': 'ignore'
+      'receive.denycurrentbranch': 'ignore',
+      'lunchbadger.accesskey': key
     });
     return repo;
   };
