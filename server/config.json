@@ -25,6 +25,7 @@
   },
   "legacyExplorer": false,
   "lunchBadger": {
-    "repoPath": "example/repos"
+    "repoPath": "example/repos",
+    "gitAuthOnPrivateNetworks": false
   }
 }

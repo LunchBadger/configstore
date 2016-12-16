@@ -14,18 +14,28 @@ const {spawn, exec} = require('child_process');
 const express = require('express');
 const passport = require('passport');
 const {BasicStrategy} = require('passport-http');
+const IpStrategy = require('passport-ip').Strategy;
 
 const SERVICES = ['git-upload-pack', 'git-receive-pack'];
 
-module.exports = function getRouter(repoPath) {
+module.exports = function getRouter(repoPath, authOnPrivateNetworks) {
   const gitServer = new GitServer(repoPath);
 
   const router = express.Router();
 
+  if (!authOnPrivateNetworks) {
+    passport.use(new IpStrategy({
+      range: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '127.0.0.0/8']
+    }, (_profile, done) => {
+      done(null, 'git-user');
+    }));
+  }
   passport.use(new BasicStrategy({passReqToCallback: true},
                                  gitServer.checkGitAccessKey.bind(gitServer)));
 
-  router.use('/:repo', passport.authenticate('basic', {session: false}));
+  router.use('/:repo', passport.authenticate(['ip', 'basic'], {
+    session: false
+  }));
   router.get('/:repo/info/refs', gitServer.getInfoRefs.bind(gitServer));
   router.post('/:repo/:service', gitServer.serviceRpc.bind(gitServer));
 

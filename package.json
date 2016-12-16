@@ -29,6 +29,7 @@
     "nodegit": "^0.16.0",
     "passport": "^0.3.2",
     "passport-http": "^0.3.0",
+    "passport-ip": "^0.1.2",
     "rimraf": "^2.5.2",
     "serve-favicon": "^2.0.1"
   },
