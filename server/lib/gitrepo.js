@@ -394,6 +394,23 @@ class GitRepo {
       }
     });
   }
+
+  async getConfigVariable(name) {
+    let repo = await this.repo();
+    let config = await repo.config();
+    let buf;
+
+    try {
+      buf = await config.getStringBuf(name);
+    } catch (err) {
+      if (err.toString().indexOf('was not found')) {
+        throw new GitRepoError(err.message);
+      }
+      throw err;
+    }
+
+    return buf.toString('utf-8');
+  }
 }
 
 module.exports = {

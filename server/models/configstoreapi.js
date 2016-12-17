@@ -41,10 +41,9 @@ module.exports = function(ConfigStoreApi) {
 
   ConfigStoreApi._createRepo = async function(id) {
     let repo = await this.manager.createRepo(id);
-    let key = crypto.randomBytes(16).toString('hex');
     repo.setConfigVariables({
       'receive.denycurrentbranch': 'ignore',
-      'lunchbadger.accesskey': key
+      'lunchbadger.accesskey': this._generateKey()
     });
     return repo;
   };
@@ -222,6 +221,30 @@ module.exports = function(ConfigStoreApi) {
       repo.cleanup();
     }
     return {count: deleted ? 1 : 0};
+  };
+
+  ConfigStoreApi.getAccessKey = async function(producerId) {
+    let repo = await this._getRepo(producerId);
+    try {
+      return await repo.getConfigVariable('lunchbadger.accesskey');
+    } finally {
+      repo.cleanup();
+    }
+  };
+
+  ConfigStoreApi._generateKey = function() {
+    return crypto.randomBytes(16).toString('hex');
+  };
+
+  ConfigStoreApi.regenerateAccessKey = async function(producerId) {
+    let repo = await this._getRepo(producerId);
+    let key = this._generateKey();
+    try {
+      repo.setConfigVariables({'lunchbadger.accesskey': key});
+    } finally {
+      repo.cleanup();
+    }
+    return key;
   };
 
   ConfigStoreApi.remoteMethod('create', {
@@ -514,6 +537,46 @@ module.exports = function(ConfigStoreApi) {
       arg: 'count',
       type: 'object',
       root: true
+    }
+  });
+
+  ConfigStoreApi.remoteMethod('getAccessKey', {
+    description: 'Retrieve the access key for the Git repository',
+    http: {
+      verb: 'get',
+      path: '/:producerId/accesskey'
+    },
+    accepts: [
+      {
+        arg: 'producerId',
+        type: 'string',
+        required: true,
+        description: 'Producer id'
+      }
+    ],
+    returns: {
+      arg: 'key',
+      type: 'string'
+    }
+  });
+
+  ConfigStoreApi.remoteMethod('regenerateAccessKey', {
+    description: 'Retrieve the access key for the Git repository',
+    http: {
+      verb: 'post',
+      path: '/:producerId/accesskey'
+    },
+    accepts: [
+      {
+        arg: 'producerId',
+        type: 'string',
+        required: true,
+        description: 'Producer id'
+      }
+    ],
+    returns: {
+      arg: 'key',
+      type: 'string'
     }
   });
 };

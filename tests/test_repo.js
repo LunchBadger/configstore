@@ -336,5 +336,25 @@ describe('GitRepo', function() {
         assert.isTrue(config.includes('verbosity = 1'));
       });
     });
+
+    describe('getConfigVariables()', function() {
+      it('should retrieve config variables', async function() {
+        assert.equal(await repo.getConfigVariable('core.bare'), 'false');
+
+        await repo.setConfigVariables({
+          'receive.denycurrentbranch': 'ignore',
+          'merge.verbosity': 1
+        });
+
+        assert.equal(await repo.getConfigVariable('receive.denycurrentbranch'),
+                     'ignore');
+        assert.equal(await repo.getConfigVariable('merge.verbosity'), '1');
+      });
+
+      it('should throw if the variable does not exist', async function() {
+        await assert.isRejected(repo.getConfigVariable('fake.variable'),
+          gitrepo.GitRepoError);
+      });
+    });
   });
 });
