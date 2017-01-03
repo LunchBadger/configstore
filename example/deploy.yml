@@ -29,7 +29,7 @@ spec:
       volumes:
         - name: data
           awsElasticBlockStore:
-            volumeID: vol-05370cb1
+            volumeID: vol-031f60a2ee13c9e97
             fsType: ext4
       nodeSelector:
         lunchbadger.com/node-type: worker
