@@ -11,10 +11,12 @@ clients.
 
 const path = require('path');
 const {spawn, exec} = require('child_process');
+const EventEmitter = require('events');
 const express = require('express');
 const passport = require('passport');
 const {BasicStrategy} = require('passport-http');
 const IpStrategy = require('passport-ip').Strategy;
+const Transform = require('stream').Transform;
 
 const SERVICES = ['git-upload-pack', 'git-receive-pack'];
 
@@ -39,11 +41,15 @@ module.exports = function getRouter(repoPath, authOnPrivateNetworks) {
   router.get('/:repo/info/refs', gitServer.getInfoRefs.bind(gitServer));
   router.post('/:repo/:service', gitServer.serviceRpc.bind(gitServer));
 
-  return router;
+  return {
+    router: router,
+    server: gitServer
+  };
 };
 
-class GitServer {
+class GitServer extends EventEmitter {
   constructor(repoPath) {
+    super();
     this.repoPath = repoPath;
   }
 
@@ -75,7 +81,33 @@ class GitServer {
     }
 
     sendHeaders(res, `application/x-${service}-result`);
-    runService(this.repoPath, service, ['--stateless-rpc'], req, res);
+    runService(this.repoPath, service, ['--stateless-rpc'], req, res, out => {
+      if (service === 'git-receive-pack') {
+        if (out[0] === '\u0002') {
+          out = out.slice(1);
+        }
+        let changes = out
+          .trim()
+          .split('\n')
+          .map(line => {
+            const [before, after, ref] = line.trim().split(' ');
+            const match = ref.match(/refs\/(head|tag)s\/(.*)/);
+            if (!match) {
+              return null;
+            }
+
+            return {
+              type: match[1],
+              ref: match[2],
+              before,
+              after
+            };
+          })
+          .filter(item => item !== null);
+
+        this.emit('push', req.params.repo, changes);
+      }
+    });
   }
 
   checkGitAccessKey(req, username, password, done) {
@@ -131,18 +163,101 @@ function makePacket(message) {
   return `${prefix}${message}0000`;
 }
 
-function runService(allRepoPath, service, args, req, res) {
+function runService(allRepoPath, service, args, req, res, cb) {
   const repoPath = path.join(allRepoPath, req.params.repo);
   const git = spawn('/usr/bin/' + service, args.concat([repoPath]));
 
+  const tee = new GitServiceTee();
+
   req.pipe(git.stdin);
-  git.stdout.pipe(res);
+  git.stdout.pipe(tee);
+  tee.pipe(res);
 
   git.stderr.on('data', data => {
     console.log(`error from git: ${data.toString('utf-8').trim()}`);
   });
 
   git.on('exit', () => {
-    res.end();
+    tee.end();
+    if (cb) {
+      cb(tee.output);
+    }
   });
+}
+
+class PacketParser extends EventEmitter {
+  constructor() {
+    super();
+    this.buffer = '';
+    this.ok = true;
+  }
+
+  feed(chunk) {
+    if (!this.ok) {
+      return;
+    }
+
+    this.buffer += chunk.toString('ascii');
+
+    let pos = 0;
+
+    while (this.buffer.length > pos) {
+      const strLen = this.buffer.substr(pos, 4);
+
+      if (strLen === '0000') {
+        this.emit('end');
+        pos += 5; // account for new line
+        continue;
+      }
+
+      if (!strLen.match(/^[0-9a-fA-F]{4}$/)) {
+        this.emit('error', new Error('bad length format'));
+        this.ok = false;
+        break;
+      }
+
+      const len = parseInt(strLen, 16);
+      if (len <= 4) {
+        this.emit('error', new Error('length too short'));
+        this.ok = false;
+        break;
+      }
+
+      if (len > pos + this.buffer.length) {
+        break;
+      }
+
+      this.emit('packet', this.buffer.substr(pos + 4, len - 4));
+      pos += len;
+    }
+
+    this.buffer = this.buffer.substr(pos);
+  }
+}
+
+class GitServiceTee extends Transform {
+  constructor(options) {
+    super(options);
+
+    this.parser = new PacketParser();
+    this.parser.on('error', err => {
+      console.log('error', err.message);
+    });
+
+    let firstPacket = true;
+    this.output = '';
+
+    this.parser.on('packet', data => {
+      if (firstPacket) {
+        firstPacket = false;
+      } else {
+        this.output += data;
+      }
+    });
+  }
+
+  _transform(chunk, _encoding, callback) {
+    this.parser.feed(chunk.toString('ascii'));
+    callback(null, chunk);
+  }
 }

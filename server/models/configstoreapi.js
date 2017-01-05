@@ -1,13 +1,16 @@
 'use strict';
 
 const crypto = require('crypto');
+const fs = require('fs');
 const path = require('path');
+const PassThrough = require('stream').PassThrough;
 
 const ConfigValidator = require('../lib/configvalidator');
 const error = require('../lib/error');
 const gitrepo = require('../lib/gitrepo');
 
 const CONFIG_SCHEMA_DIR = path.resolve(__dirname, '../schema');
+const POST_UPDATE_HOOK = require('../lib/constants').POST_UPDATE_HOOK;
 
 module.exports = function(ConfigStoreApi) {
   const validator = new ConfigValidator(CONFIG_SCHEMA_DIR);
@@ -42,9 +45,14 @@ module.exports = function(ConfigStoreApi) {
   ConfigStoreApi._createRepo = async function(id) {
     let repo = await this.manager.createRepo(id);
     repo.setConfigVariables({
-      'receive.denycurrentbranch': 'ignore',
+      'receive.denycurrentbranch': 'updateInstead',
       'lunchbadger.accesskey': this._generateKey()
     });
+
+    const hookPath = path.join(repo.path, '.git', 'hooks', 'post-receive');
+    if (!fs.existsSync(hookPath)) {
+      fs.writeFileSync(hookPath, POST_UPDATE_HOOK);
+    }
     return repo;
   };
 
@@ -245,6 +253,38 @@ module.exports = function(ConfigStoreApi) {
       repo.cleanup();
     }
     return key;
+  };
+
+  ConfigStoreApi.repoEventStream = function(producerId, cb) {
+    let changes = new PassThrough({objectMode: true});
+    let writable = true;
+
+    changes.destroy = function() {
+      changes.removeAllListeners('error');
+      changes.removeAllListeners('end');
+      writeable = false;
+      changes = null;
+    };
+
+    changes.on('error', () => {
+      writeable = false;
+    });
+    changes.on('end', () => {
+      writeable = false;
+    });
+
+    process.nextTick(() => {
+      cb(null, changes);
+    });
+
+    this.gitServer.on('push', (pushedRepo, changedRefs) => {
+      if (writable && `${producerId}.git` === pushedRepo) {
+        changes.write({
+          type: 'push',
+          changes: changedRefs
+        });
+      }
+    });
   };
 
   ConfigStoreApi.remoteMethod('create', {
@@ -577,6 +617,27 @@ module.exports = function(ConfigStoreApi) {
     returns: {
       arg: 'key',
       type: 'string'
+    }
+  });
+
+  ConfigStoreApi.remoteMethod('repoEventStream', {
+    description: 'Create a change stream.',
+    accessType: 'READ',
+    http: [
+      {verb: 'get', path: '/:producerId/change-stream'}
+    ],
+    accepts: [
+      {
+        arg: 'producerId',
+        type: 'string',
+        required: true,
+        description: 'Producer id'
+      }
+    ],
+    returns: {
+      arg: 'changes',
+      type: 'ReadableStream',
+      json: true
     }
   });
 };
