@@ -9,6 +9,7 @@ Does not implement "dumb" server protocol, so will likely not work for old
 clients.
 */
 
+const fs = require('fs');
 const path = require('path');
 const {spawn, exec} = require('child_process');
 const EventEmitter = require('events');
@@ -18,14 +19,17 @@ const {BasicStrategy} = require('passport-http');
 const IpStrategy = require('passport-ip').Strategy;
 const Transform = require('stream').Transform;
 
+const POST_UPDATE_HOOK = '#!/bin/bash\nexec cat\n';
 const SERVICES = ['git-upload-pack', 'git-receive-pack'];
 
 module.exports = function getRouter(repoPath, authOnPrivateNetworks) {
   const gitServer = new GitServer(repoPath);
 
   const router = express.Router();
+  let strategies = ['basic'];
 
   if (!authOnPrivateNetworks) {
+    strategies.unshift('ip');
     passport.use(new IpStrategy({
       range: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16', '127.0.0.0/8']
     }, (_profile, done) => {
@@ -35,7 +39,7 @@ module.exports = function getRouter(repoPath, authOnPrivateNetworks) {
   passport.use(new BasicStrategy({passReqToCallback: true},
                                  gitServer.checkGitAccessKey.bind(gitServer)));
 
-  router.use('/:repo', passport.authenticate(['ip', 'basic'], {
+  router.use('/:repo', passport.authenticate(strategies, {
     session: false
   }));
   router.get('/:repo/info/refs', gitServer.getInfoRefs.bind(gitServer));
@@ -45,6 +49,18 @@ module.exports = function getRouter(repoPath, authOnPrivateNetworks) {
     router: router,
     server: gitServer
   };
+};
+
+module.exports.configureRepo = async function(repoPath, password) {
+  await exec('git config receive.denycurrentbranch updateInstead',
+    {cwd: repoPath});
+  await exec(`git config lunchbadger.accesskey "${password}"`,
+    {cwd: repoPath});
+
+  const hookPath = path.join(repoPath, '.git', 'hooks', 'post-receive');
+  if (!fs.existsSync(hookPath)) {
+    fs.writeFileSync(hookPath, POST_UPDATE_HOOK, {mode: 0o775});
+  }
 };
 
 class GitServer extends EventEmitter {
@@ -90,7 +106,11 @@ class GitServer extends EventEmitter {
           .trim()
           .split('\n')
           .map(line => {
-            const [before, after, ref] = line.trim().split(' ');
+            line = line.trim();
+            if (!line.length) {
+              return null;
+            }
+            const [before, after, ref] = line.split(' ');
             const match = ref.match(/refs\/(head|tag)s\/(.*)/);
             if (!match) {
               return null;

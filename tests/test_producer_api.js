@@ -40,7 +40,7 @@ describe('Producer API', function() {
         .expect(200);
     });
 
-    it('should be able to tell that the prodyucer exists', async function() {
+    it('should be able to tell that the producer exists', async function() {
       await client
         .get('/api/producers/test-config/exists')
         .expect(200, {exists: true});
