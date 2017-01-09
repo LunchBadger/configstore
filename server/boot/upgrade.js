@@ -11,7 +11,7 @@ module.exports = function(app) {
   for (let repo of fs.readdirSync(repoPath)) {
     const thisPath = path.join(repoPath, repo);
     const stats = fs.statSync(thisPath);
-    if (stats.isDirectory()) {
+    if (stats.isDirectory() && repo.endsWith('.git')) {
       console.log('> ' + thisPath);
       upgradeRepo(thisPath);
     }

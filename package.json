@@ -1,6 +1,6 @@
 {
   "name": "configstore",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "main": "dist/server/server.js",
   "scripts": {
     "start": "scripts/createRepo.sh && DEBUG=configstore:* babel-node server/server.js",
