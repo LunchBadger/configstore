@@ -248,6 +248,9 @@ module.exports = function(ConfigStoreApi) {
 
   ConfigStoreApi.repoEventStream = function(producerId, req, cb) {
     let changes = new PassThrough({objectMode: true});
+    let keepAlive = setInterval(() => {
+      changes.write({type: 'keepalive'});
+    }, 30000);
 
     const handler = (pushedRepo, changedRefs) => {
       if (changes && `${producerId}.git` === pushedRepo) {
@@ -262,6 +265,10 @@ module.exports = function(ConfigStoreApi) {
 
     req.on('close', () => {
       this.gitServer.removeListener('push', handler);
+
+      clearInterval(keepAlive);
+      keepAlive = null;
+
       changes.removeAllListeners('error');
       changes.removeAllListeners('end');
       changes = null;
