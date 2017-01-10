@@ -246,35 +246,29 @@ module.exports = function(ConfigStoreApi) {
     return key;
   };
 
-  ConfigStoreApi.repoEventStream = function(producerId, cb) {
+  ConfigStoreApi.repoEventStream = function(producerId, req, cb) {
     let changes = new PassThrough({objectMode: true});
-    let writable = true;
 
-    changes.destroy = function() {
-      changes.removeAllListeners('error');
-      changes.removeAllListeners('end');
-      writeable = false;
-      changes = null;
-    };
-
-    changes.on('error', () => {
-      writeable = false;
-    });
-    changes.on('end', () => {
-      writeable = false;
-    });
-
-    process.nextTick(() => {
-      cb(null, changes);
-    });
-
-    this.gitServer.on('push', (pushedRepo, changedRefs) => {
-      if (writable && `${producerId}.git` === pushedRepo) {
+    const handler = (pushedRepo, changedRefs) => {
+      if (changes && `${producerId}.git` === pushedRepo) {
         changes.write({
           type: 'push',
           changes: changedRefs
         });
       }
+    };
+
+    this.gitServer.on('push', handler);
+
+    req.on('close', () => {
+      this.gitServer.removeListener('push', handler);
+      changes.removeAllListeners('error');
+      changes.removeAllListeners('end');
+      changes = null;
+    });
+
+    process.nextTick(() => {
+      cb(null, changes);
     });
   };
 
@@ -623,6 +617,13 @@ module.exports = function(ConfigStoreApi) {
         type: 'string',
         required: true,
         description: 'Producer id'
+      },
+      {
+        arg: 'req',
+        type: 'object',
+        http: {
+          source: 'req'
+        }
       }
     ],
     returns: {
