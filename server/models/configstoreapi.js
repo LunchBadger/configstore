@@ -21,7 +21,7 @@ module.exports = function(ConfigStoreApi) {
     if (!repo.isValid()) {
       throw error.badRequestError('Invalid Producer format');
     }
-    let repoObj = await this._createRepo(repo.id);
+    let repoObj = await this._getOrCreateRepo(repo.id);
     repoObj.cleanup();
     return repo;
   };

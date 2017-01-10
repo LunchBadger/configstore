@@ -6,6 +6,8 @@ DEMODIR=example/repos/demo.git
 
 if [ ! -e $DEMODIR ]; then
   mkdir -p $DEMODIR
-  cd $DEMODIR
+  pushd $DEMODIR > /dev/null
   git init
+  popd > /dev/null
+  PATH=$(npm bin):$PATH babel-node scripts/configureRepo.js
 fi
