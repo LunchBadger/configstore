@@ -79,7 +79,7 @@ class GitServer extends EventEmitter {
     sendHeaders(res, `application/x-${service}-advertisement`);
     res.write(makePacket(`# service=${service}\n`));
 
-    const args = ['--stateless-rpc', '--advertise-refs'];
+    const args = ['--stateless-rpc', '--advertise-refs', '-q'];
     runService(this.repoPath, service, args, req, res);
   }
 
@@ -97,7 +97,9 @@ class GitServer extends EventEmitter {
     }
 
     sendHeaders(res, `application/x-${service}-result`);
-    runService(this.repoPath, service, ['--stateless-rpc'], req, res, out => {
+
+    const args = ['--stateless-rpc', '-q'];
+    runService(this.repoPath, service, args, req, res, out => {
       if (service === 'git-receive-pack') {
         if (out[0] === '\u0002') {
           out = out.slice(1);
