@@ -79,8 +79,8 @@ class GitServer extends EventEmitter {
     sendHeaders(res, `application/x-${service}-advertisement`);
     res.write(makePacket(`# service=${service}\n`));
 
-    const args = ['--stateless-rpc', '--advertise-refs', '-q'];
-    runService(this.repoPath, service, args, req, res);
+    const args = ['--stateless-rpc', '--advertise-refs'];
+    runService({allRepoPath: this.repoPath, service, args, req, res});
   }
 
   serviceRpc(req, res) {
@@ -98,9 +98,14 @@ class GitServer extends EventEmitter {
 
     sendHeaders(res, `application/x-${service}-result`);
 
-    const args = ['--stateless-rpc', '-q'];
-    runService(this.repoPath, service, args, req, res, out => {
-      if (service === 'git-receive-pack') {
+    const args = ['--stateless-rpc'];
+    const runOpts = {allRepoPath: this.repoPath, service, args, req, res};
+
+    if (service === 'git-receive-pack') {
+      args.push('-q');
+
+      runOpts.saveOutput = true;
+      runOpts.callback = out => {
         if (out[0] === '\u0002') {
           out = out.slice(1);
         }
@@ -128,8 +133,10 @@ class GitServer extends EventEmitter {
           .filter(item => item !== null);
 
         this.emit('push', req.params.repo, changes);
-      }
-    });
+      };
+    }
+
+    runService(runOpts);
   }
 
   checkGitAccessKey(req, username, password, done) {
@@ -185,24 +192,46 @@ function makePacket(message) {
   return `${prefix}${message}0000`;
 }
 
-function runService(allRepoPath, service, args, req, res, cb) {
-  const repoPath = path.join(allRepoPath, req.params.repo);
+function runService(opts) {
+  let {
+    allRepoPath,
+    service,
+    args,
+    req,
+    res,
+    callback,
+    saveOutput = false
+  } = opts;
+
+  const repoPath = path.join(allRepoPath, opts.req.params.repo);
   const git = spawn('/usr/bin/' + service, args.concat([repoPath]));
 
-  const tee = new GitServiceTee();
+  let tee;
+  if (saveOutput) {
+    tee = new GitServiceTee();
 
-  req.pipe(git.stdin);
-  git.stdout.pipe(tee);
-  tee.pipe(res);
+    req.pipe(git.stdin);
+    git.stdout.pipe(tee);
+    tee.pipe(res);
+  } else {
+    req.pipe(git.stdin);
+    git.stdout.pipe(res);
+  }
 
   git.stderr.on('data', data => {
     console.log(`error from git: ${data.toString('utf-8').trim()}`);
   });
 
   git.on('exit', () => {
-    tee.end();
-    if (cb) {
-      cb(tee.output);
+    let result = null;
+
+    if (saveOutput) {
+      tee.end();
+      result = tee.output;
+    }
+
+    if (callback) {
+      callback(result);
     }
   });
 }
