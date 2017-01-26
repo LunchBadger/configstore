@@ -10,6 +10,7 @@ const gitrepo = require('../lib/gitrepo');
 const configureRepoForHttp = require('../lib/githttp').configureRepo;
 
 const CONFIG_SCHEMA_DIR = path.resolve(__dirname, '../schema');
+const DETACHED = '0000000000000000000000000000000000000000';
 
 module.exports = function(ConfigStoreApi) {
   const validator = new ConfigValidator(CONFIG_SCHEMA_DIR);
@@ -246,7 +247,7 @@ module.exports = function(ConfigStoreApi) {
     return key;
   };
 
-  ConfigStoreApi.repoEventStream = function(producerId, req, cb) {
+  ConfigStoreApi.repoEventStream = async function(producerId, req) {
     let changes = new PassThrough({objectMode: true});
     let keepAlive = setInterval(() => {
       changes.write({type: 'keepalive'});
@@ -274,9 +275,27 @@ module.exports = function(ConfigStoreApi) {
       changes = null;
     });
 
-    process.nextTick(() => {
-      cb(null, changes);
+    let repo = await this._getRepo(producerId);
+    let branchRefs = {};
+    try {
+      let branches = await repo.getBranches();
+      await Promise.all(branches.map(async branch => {
+        branchRefs[branch] = await repo.getBranchRevision(branch);
+      }));
+    } finally {
+      repo.cleanup();
+    }
+
+    if (!branchRefs.master) {
+      branchRefs.master = DETACHED;
+    }
+
+    changes.write({
+      type: 'initial',
+      branches: branchRefs
     });
+
+    return changes;
   };
 
   ConfigStoreApi.remoteMethod('create', {
