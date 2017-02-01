@@ -5,6 +5,7 @@
   "scripts": {
     "start": "scripts/createRepo.sh && DEBUG=configstore:* babel-node server/server.js",
     "start:dist": "DEBUG=configstore:* node dist/server/server.js",
+    "start:test": "scripts/createRepo.sh /var/configstore/demo.git && DEBUG=configstore:* node dist/server/server.js",
     "dist": "scripts/build.sh",
     "pretest": "eslint .",
     "test": "mocha --compilers js:babel-register tests",
