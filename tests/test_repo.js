@@ -161,7 +161,7 @@ describe('GitRepo', function() {
         'echo "Third file" > baz.txt',
       ], 'Second commit');
 
-      await exec('git br second', {cwd: testPath});
+      await exec('git branch second', {cwd: testPath});
 
       revMaster = await execAndCommit([
         'echo "More in the second file" >> bar.txt',

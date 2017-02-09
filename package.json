@@ -9,6 +9,7 @@
     "dist": "scripts/build.sh",
     "pretest": "eslint .",
     "test": "mocha --compilers js:babel-register tests",
+    "test:xunit": "mkdir -p test-results && mocha --compilers js:babel-register -R xunit --reporter-options output=test-results/xunit.xml tests",
     "posttest": "nsp check",
     "clean": "rimraf dist"
   },

@@ -9,6 +9,9 @@ RUN sed -i s/jessie/testing/g /etc/apt/sources.list && \
     apt-get update && \
     apt-get install -y git
 
+RUN git config --global user.email "support@lunchbadger.com" && \
+    git config --global user.name "LunchBadger"
+
 COPY package.json /usr/src/app/
 RUN npm install
 COPY . /usr/src/app
