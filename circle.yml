@@ -11,7 +11,7 @@ dependencies:
 
 test:
   override:
-    - "docker run -it -v `pwd`/test-results:/usr/src/app/test-results configstore:test npm test"
+    - "docker run -it -v `pwd`/test-results:/usr/src/app/test-results configstore:test npm run test:xunit"
   post:
     - cp -r test-results/xunit.xml $CIRCLE_TEST_REPORTS/
 
