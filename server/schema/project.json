@@ -7,9 +7,9 @@
       "type": "array",
       "items": { "$ref": "definitions.json#/dataSource" }
     },
-    "privateEndpoints": {
+    "serviceEndpoints": {
       "type": "array",
-      "items": { "$ref": "definitions.json#/privateEndpoint" }
+      "items": { "$ref": "definitions.json#/serviceEndpoint" }
     },
     "privateModels": {
       "type": "array",
@@ -27,9 +27,9 @@
       "type": "array",
       "items": { "$ref": "definitions.json#/gateway" }
     },
-    "publicEndpoints": {
+    "apiEndpoints": {
       "type": "array",
-      "items": { "$ref": "definitions.json#/publicEndpoint" }
+      "items": { "$ref": "definitions.json#/apiEndpoint" }
     },
     "connections": {
       "type": "array",

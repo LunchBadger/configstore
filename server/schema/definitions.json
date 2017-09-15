@@ -33,7 +33,7 @@
     "required": ["id", "name", "type"],
     "additionalProperties": false
   },
-  "privateEndpoint": {
+  "serviceEndpoint": {
     "type": "object",
     "properties": {
       "id": {
@@ -42,15 +42,15 @@
       "name": {
         "type": "string"
       },
-      "url": {
-        "type": "string"
+      "urls": {
+        "type": ["string"]
       },
       "itemOrder": {
         "type": "number",
         "default": 0
       }
     },
-    "required": ["id", "name", "url"],
+    "required": ["id", "name", "urls", "itemOrder"],
     "additionalProperties": false
   },
   "model": {
@@ -307,7 +307,7 @@
     "required": ["id", "name", "icon"],
     "additionalProperties": false
   },
-  "publicEndpoint": {
+  "apiEndpoint": {
     "type": "object",
     "properties": {
       "id": {
@@ -316,15 +316,19 @@
       "name": {
         "type": "string"
       },
-      "path": {
-        "type": "string"
+      "host": {
+        "type": "string",
+        "default": "*"
+      },
+      "paths": {
+        "type": ["string"]
       },
       "itemOrder": {
         "type": "number",
         "default": 0
       }
     },
-    "required": ["id", "name", "path", "itemOrder"],
+    "required": ["id", "name", "host", "itemOrder"],
     "additionalProperties": false
   },
   "portal": {
