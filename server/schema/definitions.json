@@ -43,7 +43,10 @@
         "type": "string"
       },
       "urls": {
-        "type": ["string"]
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       },
       "itemOrder": {
         "type": "number",
@@ -321,7 +324,10 @@
         "default": "*"
       },
       "paths": {
-        "type": ["string"]
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
       },
       "itemOrder": {
         "type": "number",
