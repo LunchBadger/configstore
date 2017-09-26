@@ -14,9 +14,8 @@ spec:
     spec:
       containers:
         - name: configstore
-          image: lunchbadger/configstore:0.0.11-beta
-          # image: 410240865662.dkr.ecr.us-west-2.amazonaws.com/configstore:0.0.10
-          # imagePullPolicy: Always
+          image: 410240865662.dkr.ecr.us-west-2.amazonaws.com/configstore:0.0.11-alpha
+          imagePullPolicy: Always
           ports:
             - containerPort: 3002
           volumeMounts:
