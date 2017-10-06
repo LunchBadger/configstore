@@ -142,7 +142,9 @@ module.exports = function(ConfigStoreApi) {
       let repo = null;
       try {
         repo = await this._getRepo(producerId);
-        let [content, chksum] = await repo.getFile('env/' + envId, fileName);
+        // TODO: This will always pull from the master branch,
+        // without support for "environments."
+        let [content, chksum] = await repo.getFile('master', fileName);
         cb(null, content, chksum, 'application/octet-stream');
       } catch (err) {
         if (err instanceof gitrepo.FileNotFound) {

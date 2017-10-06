@@ -28,9 +28,7 @@ spec:
               memory: "768Mi"
       volumes:
         - name: data
-          awsElasticBlockStore:
-            volumeID: vol-0a9c61b5d98381bd1
-            fsType: ext4
+          emptyDir: {}
       nodeSelector:
         lunchbadger.com/node-type: worker
 ---
@@ -61,3 +59,4 @@ spec:
       - backend:
           serviceName: configstore
           servicePort: 80
+

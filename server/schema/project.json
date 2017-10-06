@@ -15,6 +15,10 @@
       "type": "array",
       "items": { "$ref": "definitions.json#/model" }
     },
+    "functions": {
+      "type": "array",
+      "items": { "$ref": "definitions.json#/function" }
+    },
     "apis": {
       "type": "array",
       "items": { "$ref": "definitions.json#/api" }
