@@ -148,6 +148,98 @@
                  "readOnly", "public", "strict"],
     "additionalProperties": false
   },
+  "function": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string"
+      },
+      "name": {
+        "type": "string"
+      },
+      "contextPath": {
+        "type": "string"
+      },
+      "itemOrder": {
+        "type": "number",
+        "default": 0
+      },
+      "base": {
+        "type": "string",
+        "default": "Model"
+      },
+      "plural": {
+        "type": "string"
+      },
+      "readOnly": {
+        "type": "boolean",
+        "default": false
+      },
+      "public": {
+        "type": "boolean",
+        "default": false
+      },
+      "strict": {
+        "type": "boolean",
+        "default": false
+      },
+      "privateModelProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "propertyKey": {
+              "type": "string"
+            },
+            "propertyValue": {
+              "type": "string"
+            },
+            "propertyType": {
+              "type": "string"
+            },
+            "propertyIsRequired": {
+              "type": "boolean"
+            },
+            "propertyIsIndex": {
+              "type": "boolean"
+            },
+            "propertyNotes": {
+              "type": "string"
+            }
+          },
+          "required": ["id"]
+        }
+      },
+      "privateModelRelations": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "relationType": {
+              "type": "string"
+            },
+            "relationForeignKey": {
+              "type": "string"
+            },
+            "relationModel": {
+              "type": "string"
+            }
+          },
+          "required": ["id"],
+          "additionalProperties": false
+        }
+      }
+    },
+    "required": ["id", "name", "contextPath", "itemOrder", "base",
+                 "readOnly", "public", "strict"],
+    "additionalProperties": false
+  },
   "api": {
     "type": "object",
     "properties": {
