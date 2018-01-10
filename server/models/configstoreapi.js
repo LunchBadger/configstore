@@ -63,8 +63,8 @@ module.exports = function(ConfigStoreApi) {
     }));
     let branchInfo = {};
     branchRevs.forEach(([branch, revision]) => {
-      if (branch.startsWith('env/')) {
-        branchInfo[branch.substr(4)] = revision;
+      if (branch === 'master') {
+        branchInfo['dev'] = revision;
       }
     });
     return {
