@@ -1,4 +1,4 @@
-FROM node:7
+FROM node:8
 
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
@@ -15,9 +15,8 @@ RUN git config --global user.email "support@lunchbadger.com" && \
 COPY package.json /usr/src/app/
 RUN npm install
 COPY . /usr/src/app
-RUN npm run dist
 
 RUN mkdir -p /var/configstore
 ENV NODE_ENV production
 
-CMD [ "npm", "run", "start:dist" ]
+CMD [ "npm", "run", "start" ]
