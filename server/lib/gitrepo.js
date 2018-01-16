@@ -72,8 +72,8 @@ class RepoManager {
    * @returns {Promise.<Array.<GitRepo>>}
    */
   async getAllRepos () {
-    return fs.readdirAsync(this.root)
-      .map(potentialFile => path.join(this.root, potentialFile))
+    let folders = await fs.readdirAsync(this.root);
+    return folders.map(potentialFile => path.join(this.root, potentialFile))
       .filter(async (potentialPath) => {
         let stat = await fs.statAsync(potentialPath);
         return (stat.isDirectory() && potentialPath.endsWith('.git'));
