@@ -72,8 +72,7 @@ class RepoManager {
    * @returns {Promise.<Array.<GitRepo>>}
    */
   async getAllRepos () {
-    return await fs
-      .readdirAsync(this.root)
+    return fs.readdirAsync(this.root)
       .map(potentialFile => path.join(this.root, potentialFile))
       .filter(async (potentialPath) => {
         let stat = await fs.statAsync(potentialPath);
@@ -84,9 +83,10 @@ class RepoManager {
 
   /**
    * Removes all existing repositories.
-   */
+  */
   async removeAllRepos () {
-    return await this.getAllRepos().each(repo => rimraf(repo.path));
+    let repos = await this.getAllRepos();
+    return repos.forEach(repo => rimraf(repo.path));
   }
 
   /**

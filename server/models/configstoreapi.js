@@ -123,6 +123,8 @@ module.exports = function (ConfigStoreApi) {
           data);
         cb(null, rev, undefined);
       } catch (err) {
+        console.log(err);
+
         if (err instanceof gitrepo.OptimisticConcurrencyError) {
           cb(error.preconditionFailedError('Please refresh'));
         } else {

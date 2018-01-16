@@ -1,5 +1,3 @@
-'use strict';
-
 let supertest = require('supertest-as-promised');
 let assert = require('chai').assert;
 
@@ -12,7 +10,6 @@ describe('Environment API', function () {
   beforeEach(async function () {
     await manager.createRepo('test-config');
   });
-
   afterEach(async function () {
     await manager.removeAllRepos();
   });
@@ -22,6 +19,8 @@ describe('Environment API', function () {
       fileA: 'A bunch of configuration',
       fileB: 'Some more configuration'
     };
+    console.log(envName);
+
     return await supertest(app)
       .patch(`/api/producers/test-config/envs/${envName}/files`)
       .send(data)
