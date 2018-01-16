@@ -2,7 +2,7 @@
 
 let util = require('util');
 
-function CustomError(message) {
+function CustomError (message) {
   Error.captureStackTrace(this, this.constructor);
   this.name = this.constructor.name;
   this.message = message;
@@ -10,7 +10,7 @@ function CustomError(message) {
 util.inherits(CustomError, Error);
 
 // HTTP errors
-function httpError(code, msg) {
+function httpError (code, msg) {
   let err = Error(msg);
   err.statusCode = code;
   return err;
@@ -26,4 +26,3 @@ module.exports = {
   notFoundError,
   preconditionFailedError
 };
-

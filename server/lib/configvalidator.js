@@ -6,14 +6,14 @@ const path = require('path');
 const inspect = require('util').inspect;
 
 class ConfigValidator {
-  constructor(dir) {
+  constructor (dir) {
     this.dir = dir;
     this.ajv = new Ajv({allErrors: true, jsonPointers: true});
     this.patterns = [];
     this.errors = [];
   }
 
-  addSchema(schemaName, pattern) {
+  addSchema (schemaName, pattern) {
     const schemaPath = path.join(this.dir, `${schemaName}.json`);
     const schema = JSON.parse(fs.readFileSync(schemaPath));
 
@@ -24,7 +24,7 @@ class ConfigValidator {
     }
   }
 
-  async validate(fileName, data) {
+  async validate (fileName, data) {
     this.errors = [];
 
     const match = this.patterns.find(([pattern, _name]) => {
@@ -35,7 +35,7 @@ class ConfigValidator {
       return true;
     }
 
-    let json = undefined;
+    let json;
     try {
       json = JSON.parse(data);
     } catch (err) {

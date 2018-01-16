@@ -6,8 +6,8 @@
   },
   "plugins": [ "promise", "node" ],
   "rules": {
-    "comma-dangle": [2, "never"],
     "no-var": "error",
+    "no-return-await": "warn",
     "semi": [2, "always"],
     "no-console": "warn"
   },

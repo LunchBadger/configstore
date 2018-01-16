@@ -1,5 +1,3 @@
-'use strict';
-
 const crypto = require('crypto');
 const path = require('path');
 const PassThrough = require('stream').PassThrough;
@@ -12,12 +10,12 @@ const configureRepoForHttp = require('../lib/githttp').configureRepo;
 const CONFIG_SCHEMA_DIR = path.resolve(__dirname, '../schema');
 const DETACHED = '0000000000000000000000000000000000000000';
 
-module.exports = function(ConfigStoreApi) {
+module.exports = function (ConfigStoreApi) {
   const validator = new ConfigValidator(CONFIG_SCHEMA_DIR);
   validator.addSchema('definitions');
   validator.addSchema('project', /^project\.json$/);
 
-  ConfigStoreApi.create = async function(data) {
+  ConfigStoreApi.create = async function (data) {
     let repo = new this.app.models.Producer(data);
     if (!repo.isValid()) {
       throw error.badRequestError('Invalid Producer format');
@@ -27,11 +25,11 @@ module.exports = function(ConfigStoreApi) {
     return repo;
   };
 
-  ConfigStoreApi.exists = async function(id) {
+  ConfigStoreApi.exists = async function (id) {
     return await this.manager.repoExists(id);
   };
 
-  ConfigStoreApi._getRepo = async function(id) {
+  ConfigStoreApi._getRepo = async function (id) {
     try {
       return await this.manager.getRepo(id);
     } catch (err) {
@@ -42,13 +40,13 @@ module.exports = function(ConfigStoreApi) {
     }
   };
 
-  ConfigStoreApi._createRepo = async function(id) {
+  ConfigStoreApi._createRepo = async function (id) {
     let repo = await this.manager.createRepo(id);
     await configureRepoForHttp(repo.path, this._generateKey());
     return repo;
   };
 
-  ConfigStoreApi._getOrCreateRepo = async function(id) {
+  ConfigStoreApi._getOrCreateRepo = async function (id) {
     if (await this.manager.repoExists(id)) {
       return await this.manager.getRepo(id);
     } else {
@@ -56,7 +54,7 @@ module.exports = function(ConfigStoreApi) {
     }
   };
 
-  ConfigStoreApi._getRepoInfo = async function(repo) {
+  ConfigStoreApi._getRepoInfo = async function (repo) {
     let branches = await repo.getBranches();
     let branchRevs = await Promise.all(branches.map(async branch => {
       return [branch, await repo.getBranchRevision(branch)];
@@ -73,7 +71,7 @@ module.exports = function(ConfigStoreApi) {
     };
   };
 
-  ConfigStoreApi.getOne = async function(id) {
+  ConfigStoreApi.getOne = async function (id) {
     let repo = await this._getRepo(id);
     try {
       return await this._getRepoInfo(repo);
@@ -82,23 +80,22 @@ module.exports = function(ConfigStoreApi) {
     }
   };
 
-  ConfigStoreApi.getAll = async function() {
+  ConfigStoreApi.getAll = async function () {
     let repos = await this.manager.getAllRepos();
     try {
       return await Promise.all(repos.map(repo => this._getRepoInfo(repo)));
     } finally {
       repos.forEach(repo => repo.cleanup());
     }
-    return result;
   };
 
-  ConfigStoreApi.delete = async function(id) {
+  ConfigStoreApi.delete = async function (id) {
     let deleted = await this.manager.removeRepo(id);
     return {count: deleted ? 1 : 0};
   };
 
-  ConfigStoreApi.updateEnvFiles = function(producerId, envId, data,
-                                           parentRevision, cb) {
+  ConfigStoreApi.updateEnvFiles = function (producerId, envId, data,
+    parentRevision, cb) {
     // Note that this method does not return a Promise, since its return value
     // ends up as the value of the ETag header. Setting a header based on the
     // response value only seems to work when calling the cb, not through the
@@ -123,7 +120,7 @@ module.exports = function(ConfigStoreApi) {
       let repo = await this._getOrCreateRepo(producerId);
       try {
         let rev = await repo.updateBranchFiles('env/' + envId, parentRevision,
-                                               data);
+          data);
         cb(null, rev, undefined);
       } catch (err) {
         if (err instanceof gitrepo.OptimisticConcurrencyError) {
@@ -137,7 +134,7 @@ module.exports = function(ConfigStoreApi) {
     })();
   };
 
-  ConfigStoreApi.downloadFile = function(producerId, envId, fileName, cb) {
+  ConfigStoreApi.downloadFile = function (producerId, envId, fileName, cb) {
     (async () => {
       let repo = null;
       try {
@@ -164,8 +161,8 @@ module.exports = function(ConfigStoreApi) {
     })();
   };
 
-  ConfigStoreApi.upsertEnv = async function(producerId, envId, data) {
-    if (data.id && data.id != envId) {
+  ConfigStoreApi.upsertEnv = async function (producerId, envId, data) {
+    if (data.id && data.id !== envId) {
       throw error.badRequestError('Invalid Environment format');
     }
     data.id = envId;
@@ -189,9 +186,9 @@ module.exports = function(ConfigStoreApi) {
     }
   };
 
-  ConfigStoreApi.getEnv = async function(producerId, envId) {
+  ConfigStoreApi.getEnv = async function (producerId, envId) {
     let repo = await this._getRepo(producerId);
-    let revision = undefined;
+    let revision;
     try {
       revision = await repo.getBranchRevision('env/' + envId);
     } catch (err) {
@@ -209,9 +206,9 @@ module.exports = function(ConfigStoreApi) {
     };
   };
 
-  ConfigStoreApi.deleteEnv = async function(producerId, envId) {
+  ConfigStoreApi.deleteEnv = async function (producerId, envId) {
     let repo = await this._getRepo(producerId);
-    let deleted = undefined;
+    let deleted;
     try {
       deleted = await repo.deleteBranch('env/' + envId);
     } catch (err) {
@@ -225,7 +222,7 @@ module.exports = function(ConfigStoreApi) {
     return {count: deleted ? 1 : 0};
   };
 
-  ConfigStoreApi.getAccessKey = async function(producerId) {
+  ConfigStoreApi.getAccessKey = async function (producerId) {
     let repo = await this._getRepo(producerId);
     try {
       return await repo.getConfigVariable('lunchbadger.accesskey');
@@ -234,11 +231,11 @@ module.exports = function(ConfigStoreApi) {
     }
   };
 
-  ConfigStoreApi._generateKey = function() {
+  ConfigStoreApi._generateKey = function () {
     return crypto.randomBytes(16).toString('hex');
   };
 
-  ConfigStoreApi.regenerateAccessKey = async function(producerId) {
+  ConfigStoreApi.regenerateAccessKey = async function (producerId) {
     let repo = await this._getRepo(producerId);
     let key = this._generateKey();
     try {
@@ -249,7 +246,7 @@ module.exports = function(ConfigStoreApi) {
     return key;
   };
 
-  ConfigStoreApi.repoEventStream = async function(producerId, req) {
+  ConfigStoreApi.repoEventStream = async function (producerId, req) {
     let changes = new PassThrough({objectMode: true});
     let keepAlive = setInterval(() => {
       changes.write({type: 'keepalive'});
@@ -362,7 +359,7 @@ module.exports = function(ConfigStoreApi) {
       arg: 'data',
       type: 'Producer',
       root: true
-    },
+    }
   });
 
   ConfigStoreApi.remoteMethod('getAll', {
@@ -462,7 +459,8 @@ module.exports = function(ConfigStoreApi) {
       },
       {
         arg: 'envId',
-        type: 'string', required: true,
+        type: 'string',
+        required: true,
         description: 'Environment id'
       },
       {
@@ -553,7 +551,7 @@ module.exports = function(ConfigStoreApi) {
         type: 'string',
         required: true,
         description: 'Environment id'
-      },
+      }
     ],
     returns: [
       {
@@ -584,7 +582,7 @@ module.exports = function(ConfigStoreApi) {
         type: 'string',
         required: true,
         description: 'Environment id'
-      },
+      }
     ],
     returns: {
       arg: 'count',

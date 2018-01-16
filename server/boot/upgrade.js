@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const POST_UPDATE_HOOK = require('../lib/constants').POST_UPDATE_HOOK;
 
-module.exports = function(app) {
+module.exports = function (app) {
   console.log('Upgrading data');
   const {repoPath} = app.get('lunchBadger');
 
@@ -18,11 +18,11 @@ module.exports = function(app) {
   }
 };
 
-function upgradeRepo(repoPath) {
+function upgradeRepo (repoPath) {
   ensurePostUpdateHook(repoPath);
 }
 
-function ensurePostUpdateHook(repoPath) {
+function ensurePostUpdateHook (repoPath) {
   const hookPath = path.join(repoPath, '.git', 'hooks', 'post-receive');
   if (!fs.existsSync(hookPath)) {
     fs.writeFileSync(hookPath, POST_UPDATE_HOOK, {mode: 0o775});

@@ -5,7 +5,7 @@
   "scripts": {
     "start": "scripts/createRepo.sh && DEBUG=configstore:* node ./server/server.js",
     "start:test": "scripts/createRepo.sh /var/configstore/demo.git && DEBUG=configstore:* node ./server/server.js",
-    "pretest": "eslint .",
+    "pretest": "eslint --fix .",
     "test": "mocha  tests",
     "test:xunit": "mkdir -p test-results && mocha  -R xunit --reporter-options output=test-results/xunit.xml tests",
     "posttest": "nsp check"
@@ -15,6 +15,12 @@
     "bluebird": "^3.4.1",
     "compression": "^1.0.3",
     "cors": "^2.5.2",
+    "eslint": "^4.15.0",
+    "eslint-config-standard": "^11.0.0-beta.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-node": "^5.2.1",
+    "eslint-plugin-promise": "^3.6.0",
+    "eslint-plugin-standard": "^3.0.1",
     "fs-ext": "^0.5.0",
     "helmet": "^1.3.0",
     "longjohn": "^0.2.11",
@@ -34,7 +40,6 @@
   "devDependencies": {
     "chai": "^3.5.0",
     "chai-as-promised": "^5.3.0",
-    "eslint": "^2.5.3",
     "eslint-config-loopback": "^4.0.0",
     "mocha": "^2.5.3",
     "nsp": "^2.1.0",
