@@ -9,5 +9,5 @@ if [ ! -e $DEMODIR ]; then
   pushd $DEMODIR > /dev/null
   git init
   popd > /dev/null
-  PATH=$(npm bin):$PATH babel-node scripts/configureRepo.js $DEMODIR
+  PATH=$(npm bin):$PATH node scripts/configureRepo.js $DEMODIR
 fi

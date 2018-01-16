@@ -1,21 +1,15 @@
 {
-  "parser": "babel-eslint",
-  "parserOptions": {
-    "sourceType": "script"
-  },
-  "extends": "loopback",
+  "extends": "standard",
   "env": {
-    "es6": true
+    "es6": true,
+    "node": true
   },
+  "plugins": [ "promise", "node" ],
   "rules": {
-    "comma-dangle": "off",
+    "comma-dangle": [2, "never"],
     "no-var": "error",
-    "no-unused-vars": ["error", {
-      "varsIgnorePattern": "^_.*",
-      "argsIgnorePattern": "^_.*",
-      "args": "all"
-    }],
-    "prefer-arrow-callback": "error"
+    "semi": [2, "always"],
+    "no-console": "warn"
   },
   "root": true
 }
