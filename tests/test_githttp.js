@@ -16,7 +16,7 @@ const gitrepo = require('../server/lib/gitrepo');
 const TESTPORT = 12445;
 const TESTPASS = 'foofoofoo';
 
-describe('Git HTTP server', function() {
+describe('Git HTTP server', function () {
   let testPath = null;
   let repoRoot = null;
   let clonePath = null;
@@ -26,7 +26,7 @@ describe('Git HTTP server', function() {
   let server = null;
 
   /* some utility functions for manipulating the Git repos */
-  function startServer(...args) {
+  function startServer (...args) {
     return new Promise(resolve => {
       let httpStuff = githttp(...args);
       server = httpStuff.server;
@@ -37,25 +37,25 @@ describe('Git HTTP server', function() {
     });
   }
 
-  function stopServer() {
+  function stopServer () {
     if (listener) {
       listener.close();
       listener = null;
     }
   }
 
-  async function clone() {
+  async function clone () {
     clonePath = path.join(testPath, 'clone');
     let url = `http://git:${TESTPASS}@localhost:${TESTPORT}/git/test-repo.git`;
     await exec(`git clone "${url}" ${clonePath}`);
   }
 
-  function execClone(cmd) {
+  function execClone (cmd) {
     return exec(cmd, {cwd: clonePath});
   }
   /* end of utility functions */
 
-  beforeEach(async function() {
+  beforeEach(async function () {
     // Create temporary dir
     testPath = fs.mkdtempSync('/tmp/configstore');
 
@@ -74,19 +74,19 @@ describe('Git HTTP server', function() {
     });
   });
 
-  afterEach(function() {
+  afterEach(function () {
     // Clean up the created directories
     stopServer();
     return rimraf(testPath);
   });
 
-  describe('when running a server', function() {
-    beforeEach(async function() {
+  describe('when running a server', function () {
+    beforeEach(async function () {
       await startServer(repoManager.root, true);
       await clone();
     });
 
-    it('should succeed when fetching', async function() {
+    it('should succeed when fetching', async function () {
       const testFile = path.join(clonePath, 'test.txt');
 
       await execClone('git fetch');
@@ -94,7 +94,7 @@ describe('Git HTTP server', function() {
       assert.equal(fs.readFileSync(testFile, 'utf-8'), 'This is a test');
     });
 
-    it('should succeed and emit "push" event when pushing', async function() {
+    it('should succeed and emit "push" event when pushing', async function () {
       let numNotifications = 0;
       server.on('push', () => {
         numNotifications++;
@@ -108,7 +108,7 @@ describe('Git HTTP server', function() {
       assert.equal(numNotifications, 1);
     });
 
-    it('should not emit a "push" event if a push fails', async function() {
+    it('should not emit a "push" event if a push fails', async function () {
       let numNotifications = 0;
       server.on('push', () => {
         numNotifications++;
@@ -134,8 +134,8 @@ describe('Git HTTP server', function() {
     });
   });
 
-  describe('authentication', function() {
-    it('should fail if bad password is used', async function() {
+  describe('authentication', function () {
+    it('should fail if bad password is used', async function () {
       await startServer(repoManager.root, true);
 
       clonePath = path.join(testPath, 'clone');
@@ -143,7 +143,7 @@ describe('Git HTTP server', function() {
       await assert.isRejected(exec(`git clone "${url}" ${clonePath}`));
     });
 
-    it('should succeed if using private IP, when set', async function() {
+    it('should succeed if using private IP, when set', async function () {
       await startServer(repoManager.root, false);
 
       clonePath = path.join(testPath, 'clone');

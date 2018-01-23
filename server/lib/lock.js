@@ -6,7 +6,7 @@ Promise.promisifyAll(fs);
 let CustomError = require('./error').CustomError;
 
 class LockedError extends CustomError {
-  constructor(fileName) {
+  constructor (fileName) {
     super('File "' + fileName + '" is locked.');
   }
 }
@@ -20,7 +20,7 @@ class LockedError extends CustomError {
  * @returns {Promise} The return value (or error) will be passed through from
  *   the function.
  */
-module.exports = async function lock(lockPath, fn) {
+module.exports = async function lock (lockPath, fn) {
   let fd = null;
 
   try {

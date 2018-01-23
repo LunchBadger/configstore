@@ -1,5 +1,5 @@
 'use strict';
 
-module.exports = function(_Environment) {
+module.exports = function (_Environment) {
 
 };

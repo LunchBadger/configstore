@@ -4,8 +4,6 @@ if (process.env.NODE_ENV !== 'production') {
   require('longjohn');
 }
 
-require('heapdump');
-
 let loopback = require('loopback');
 let boot = require('loopback-boot');
 
