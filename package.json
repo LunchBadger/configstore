@@ -7,7 +7,7 @@
     "start:test": "scripts/createRepo.sh /var/configstore/demo.git && DEBUG=configstore:* node ./server/server.js",
     "pretest": "eslint --fix .",
     "test": "mocha tests",
-    "test:xunit": "mkdir -p test-results && mocha  -R xunit --reporter-options output=test-results/xunit.xml tests",
+    "test:xunit": "mocha -R xunit --reporter-options output=test-results/xunit.xml tests",
     "posttest": "nsp check"
   },
   "dependencies": {
