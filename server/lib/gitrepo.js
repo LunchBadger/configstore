@@ -12,7 +12,7 @@ let rimraf = Promise.promisify(require('rimraf'));
 let CustomError = require('./error').CustomError;
 let lock = require('./lock');
 
-class GitRepoError extends CustomError {}
+class GitRepoError extends CustomError { }
 class RepoDoesNotExistError extends GitRepoError {
   constructor (repoName) {
     super(`Repo "${repoName}" does not exist`);
@@ -30,7 +30,7 @@ class OperationInProgress extends GitRepoError {
 class OptimisticConcurrencyError extends GitRepoError {
   constructor (repoName, branchName) {
     super(`Branch "${branchName}" in repo "${repoName}" has changed.` +
-          'Please refresh and try again');
+      'Please refresh and try again');
     this.repoName = repoName;
     this.branchName = branchName;
   }
@@ -47,7 +47,7 @@ class InvalidBranchError extends GitRepoError {
 class FileNotFound extends GitRepoError {
   constructor (repoName, branchName, fileName) {
     super(`File "${fileName}" on branch "${branchName}" ` +
-          `in repo "${repoName}" does not exist`);
+      `in repo "${repoName}" does not exist`);
     this.repoName = repoName;
     this.branchName = branchName;
     this.fileName = fileName;
@@ -86,7 +86,7 @@ class RepoManager {
   */
   async removeAllRepos () {
     let repos = await this.getAllRepos();
-    return repos.forEach(repo => rimraf(repo.path));
+    return Promise.all(repos.map(repo => rimraf(repo.path)));
   }
 
   /**
