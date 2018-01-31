@@ -15,12 +15,11 @@ describe('Environment API', function () {
     await manager.removeAllRepos();
   });
 
-  async function createNewEnv (envName) {
+  async function createNewEnv(envName) {
     let data = {
       fileA: 'A bunch of configuration',
       fileB: 'Some more configuration'
     };
-    console.log(envName);
 
     return await supertest(app)
       .patch(`/api/producers/test-config/envs/${envName}/files`)
