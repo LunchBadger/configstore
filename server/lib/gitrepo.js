@@ -219,7 +219,7 @@ class GitRepo {
           parentCommit = await git.Commit.lookupPrefix(repo, parentRevision,
             parentRevision.length);
         } catch (err) {
-          if (err.toString().indexOf('Unable to parse OID') > 0) {
+          if (err.toString().toLowerCase().indexOf('unable to parse oID') > 0) {
             throw new OptimisticConcurrencyError(this.name, branchName);
           }
           throw err;
