@@ -364,6 +364,11 @@ class GitRepo {
           throw new InvalidBranchError(this.name, branchName);
         }
       }
+
+      if (!ref) {
+        throw new InvalidBranchError(this.name, branchName);
+      }
+
       if (ref.isHead()) {
         repo.detachHead();
       }
