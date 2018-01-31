@@ -10,6 +10,7 @@ describe('Environment API', function () {
   beforeEach(async function () {
     await manager.createRepo('test-config');
   });
+
   afterEach(async function () {
     await manager.removeAllRepos();
   });
@@ -62,7 +63,7 @@ describe('Environment API', function () {
       it('should be able to add a new file and read it back', async function () {
         let addRes = await supertest(app)
           .patch('/api/producers/test-config/envs/my-env/files')
-          .send({fileC: 'This is my new file'})
+          .send({ fileC: 'This is my new file' })
           .set('If-Match', revision)
           .expect(204);
 
@@ -77,7 +78,7 @@ describe('Environment API', function () {
       it('should reject an update of a bad revision', async function () {
         await supertest(app)
           .patch('/api/producers/test-config/envs/my-env/files')
-          .send({fileC: 'This is my new file'})
+          .send({ fileC: 'This is my new file' })
           .set('If-Match', 'incorrect-revision')
           .expect(412);
       });
@@ -86,7 +87,7 @@ describe('Environment API', function () {
         async function () {
           await supertest(app)
             .patch('/api/producers/test-config/envs/my-env/files')
-            .send({fileC: 'This is my new file'})
+            .send({ fileC: 'This is my new file' })
             .expect(412);
         }
       );
@@ -94,7 +95,7 @@ describe('Environment API', function () {
       it('should be able to modify a file', async function () {
         await supertest(app)
           .patch('/api/producers/test-config/envs/my-env/files')
-          .send({fileA: 'Updated file'})
+          .send({ fileA: 'Updated file' })
           .set('If-Match', revision)
           .expect(204);
 
