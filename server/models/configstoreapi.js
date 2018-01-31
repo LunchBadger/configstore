@@ -96,29 +96,31 @@ module.exports = function (ConfigStoreApi) {
 
   ConfigStoreApi.updateEnvFiles = function (producerId, envId, data,
     parentRevision, cb) {
+    let repo;
     // Note that this method does not return a Promise, since its return value
     // ends up as the value of the ETag header. Setting a header based on the
     // response value only seems to work when calling the cb, not through the
     // Promise.
     (async () => {
-      if (Object.keys(data).length < 1) {
-        cb(error.badRequestError('Must specify some data'));
-        return;
-      }
-
-      // Validate
-      for (const filePath in data) {
-        const fileName = filePath.split('/').pop();
-        if (!await validator.validate(fileName, data[filePath])) {
-          const errors = validator.errors.join('\n');
-          cb(error.badRequestError(`Validation of ${filePath} failed:\n` +
-            errors));
+      try {
+        if (Object.keys(data).length < 1) {
+          cb(error.badRequestError('Must specify some data'));
           return;
         }
-      }
 
-      let repo = await this._getOrCreateRepo(producerId);
-      try {
+        // Validate
+        for (const filePath in data) {
+          const fileName = filePath.split('/').pop();
+          if (!await validator.validate(fileName, data[filePath])) {
+            const errors = validator.errors.join('\n');
+            cb(error.badRequestError(`Validation of ${filePath} failed:\n` +
+              errors));
+            return;
+          }
+        }
+
+        repo = await this._getOrCreateRepo(producerId);
+
         let rev = await repo.updateBranchFiles('env/' + envId, parentRevision,
           data);
         cb(null, rev, undefined);
@@ -131,7 +133,9 @@ module.exports = function (ConfigStoreApi) {
           cb(err);
         }
       } finally {
-        repo.cleanup();
+        if (repo) {
+          repo.cleanup();
+        }
       }
     })();
   };
