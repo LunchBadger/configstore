@@ -26,12 +26,12 @@ module.exports = function (ConfigStoreApi) {
   };
 
   ConfigStoreApi.exists = async function (id) {
-    return await this.manager.repoExists(id);
+    return this.manager.repoExists(id);
   };
 
   ConfigStoreApi._getRepo = async function (id) {
     try {
-      return await this.manager.getRepo(id);
+      return this.manager.getRepo(id);
     } catch (err) {
       if (err instanceof gitrepo.RepoDoesNotExistError) {
         throw error.notFoundError(err.message);
@@ -48,9 +48,9 @@ module.exports = function (ConfigStoreApi) {
 
   ConfigStoreApi._getOrCreateRepo = async function (id) {
     if (await this.manager.repoExists(id)) {
-      return await this.manager.getRepo(id);
+      return this.manager.getRepo(id);
     } else {
-      return await this._createRepo(id);
+      return this._createRepo(id);
     }
   };
 
@@ -74,7 +74,7 @@ module.exports = function (ConfigStoreApi) {
   ConfigStoreApi.getOne = async function (id) {
     let repo = await this._getRepo(id);
     try {
-      return await this._getRepoInfo(repo);
+      return this._getRepoInfo(repo);
     } finally {
       repo.cleanup();
     }
@@ -83,7 +83,7 @@ module.exports = function (ConfigStoreApi) {
   ConfigStoreApi.getAll = async function () {
     let repos = await this.manager.getAllRepos();
     try {
-      return await Promise.all(repos.map(repo => this._getRepoInfo(repo)));
+      return Promise.all(repos.map(repo => this._getRepoInfo(repo)));
     } finally {
       repos.forEach(repo => repo.cleanup());
     }
@@ -91,7 +91,7 @@ module.exports = function (ConfigStoreApi) {
 
   ConfigStoreApi.delete = async function (id) {
     let deleted = await this.manager.removeRepo(id);
-    return {count: deleted ? 1 : 0};
+    return { count: deleted ? 1 : 0 };
   };
 
   ConfigStoreApi.updateEnvFiles = function (producerId, envId, data,
@@ -112,7 +112,7 @@ module.exports = function (ConfigStoreApi) {
         if (!await validator.validate(fileName, data[filePath])) {
           const errors = validator.errors.join('\n');
           cb(error.badRequestError(`Validation of ${filePath} failed:\n` +
-                                   errors));
+            errors));
           return;
         }
       }
@@ -177,7 +177,7 @@ module.exports = function (ConfigStoreApi) {
 
     try {
       let newRevision = await repo.upsertBranch('env/' + envId, env.revision);
-      return {'id': envId, 'revision': newRevision};
+      return { 'id': envId, 'revision': newRevision };
     } catch (err) {
       if (err instanceof gitrepo.RevisionNotFound) {
         throw error.badRequestError(err.message);
@@ -221,13 +221,13 @@ module.exports = function (ConfigStoreApi) {
     } finally {
       repo.cleanup();
     }
-    return {count: deleted ? 1 : 0};
+    return { count: deleted ? 1 : 0 };
   };
 
   ConfigStoreApi.getAccessKey = async function (producerId) {
     let repo = await this._getRepo(producerId);
     try {
-      return await repo.getConfigVariable('lunchbadger.accesskey');
+      return repo.getConfigVariable('lunchbadger.accesskey');
     } finally {
       repo.cleanup();
     }
@@ -241,7 +241,7 @@ module.exports = function (ConfigStoreApi) {
     let repo = await this._getRepo(producerId);
     let key = this._generateKey();
     try {
-      repo.setConfigVariables({'lunchbadger.accesskey': key});
+      repo.setConfigVariables({ 'lunchbadger.accesskey': key });
     } finally {
       repo.cleanup();
     }
@@ -249,9 +249,9 @@ module.exports = function (ConfigStoreApi) {
   };
 
   ConfigStoreApi.repoEventStream = async function (producerId, req) {
-    let changes = new PassThrough({objectMode: true});
+    let changes = new PassThrough({ objectMode: true });
     let keepAlive = setInterval(() => {
-      changes.write({type: 'keepalive'});
+      changes.write({ type: 'keepalive' });
     }, 30000);
 
     const handler = (pushedRepo, changedRefs) => {
@@ -423,7 +423,8 @@ module.exports = function (ConfigStoreApi) {
         http: {
           source: 'body'
         },
-        description: 'Object mapping file names to their content'},
+        description: 'Object mapping file names to their content'
+      },
       {
         arg: 'parentRevision',
         type: 'string',
@@ -637,7 +638,7 @@ module.exports = function (ConfigStoreApi) {
     description: 'Create a change stream.',
     accessType: 'READ',
     http: [
-      {verb: 'get', path: '/:producerId/change-stream'}
+      { verb: 'get', path: '/:producerId/change-stream' }
     ],
     accepts: [
       {

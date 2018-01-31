@@ -21,7 +21,7 @@ describe('Environment API', function () {
       fileB: 'Some more configuration'
     };
 
-    return await supertest(app)
+    return supertest(app)
       .patch(`/api/producers/test-config/envs/${envName}/files`)
       .send(data)
       .expect(204);

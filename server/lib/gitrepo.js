@@ -138,7 +138,7 @@ class RepoManager {
       await fs.mkdirAsync(this.repoPath(repoName));
       await git.Repository.init(path, 0);
     }
-    return await this.getRepo(repoName);
+    return this.getRepo(repoName);
   }
 
   /**
@@ -187,7 +187,7 @@ class GitRepo {
     let committer = author;
     let commitMessage = 'Changes';
 
-    return await lock(this.lockPath, async () => {
+    return lock(this.lockPath, async () => {
       let repo = await this.repo();
 
       // Check out the given branch and return the latest commit or null
@@ -322,7 +322,7 @@ class GitRepo {
   }
 
   async upsertBranch (branchName, revision) {
-    return await lock(this.lockPath, async () => {
+    return lock(this.lockPath, async () => {
       let oid = await this.lookupCommit(revision);
       let repo = await this.repo();
       await repo.createBranch(branchName, oid, 1, this.sign(), 'Upsert branch');
@@ -353,7 +353,7 @@ class GitRepo {
   }
 
   async deleteBranch (branchName) {
-    return await lock(this.lockPath, async () => {
+    return lock(this.lockPath, async () => {
       let repo = await this.repo();
       let ref;
       try {
@@ -378,7 +378,7 @@ class GitRepo {
   }
 
   async setConfigVariables (data) {
-    return await lock(this.lockPath, async () => {
+    return lock(this.lockPath, async () => {
       let repo = await this.repo();
       let config = await repo.config();
 

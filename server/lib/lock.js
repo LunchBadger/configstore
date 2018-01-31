@@ -35,7 +35,7 @@ module.exports = async function lock (lockPath, fn) {
   }
 
   try {
-    return await fn();
+    return fn();
   } finally {
     await fs.closeAsync(fd);
   }
