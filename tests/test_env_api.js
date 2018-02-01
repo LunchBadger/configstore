@@ -15,7 +15,7 @@ describe('Environment API', function () {
     await manager.removeAllRepos();
   });
 
-  async function createNewEnv(envName) {
+  async function createNewEnv (envName) {
     let data = {
       fileA: 'A bunch of configuration',
       fileB: 'Some more configuration'
