@@ -11,18 +11,19 @@ clients.
 
 const fs = require('fs');
 const path = require('path');
-const {spawn, exec} = require('child_process');
+const { spawn } = require('child_process');
 const EventEmitter = require('events');
 const express = require('express');
 const passport = require('passport');
-const {BasicStrategy} = require('passport-http');
+const { BasicStrategy } = require('passport-http');
 const IpStrategy = require('passport-ip').Strategy;
 const Transform = require('stream').Transform;
+const Git = require('nodegit');
 
 const POST_UPDATE_HOOK = '#!/bin/bash\nexec cat\n';
 const SERVICES = ['git-upload-pack', 'git-receive-pack'];
 
-module.exports = function getRouter (repoPath, authOnPrivateNetworks) {
+module.exports = function getRouter(repoPath, authOnPrivateNetworks) {
   const gitServer = new GitServer(repoPath);
 
   const router = express.Router();
@@ -36,7 +37,7 @@ module.exports = function getRouter (repoPath, authOnPrivateNetworks) {
       done(null, 'git-user');
     }));
   }
-  passport.use(new BasicStrategy({passReqToCallback: true},
+  passport.use(new BasicStrategy({ passReqToCallback: true },
     gitServer.checkGitAccessKey.bind(gitServer)));
 
   router.use('/:repo', passport.authenticate(strategies, {
@@ -52,24 +53,25 @@ module.exports = function getRouter (repoPath, authOnPrivateNetworks) {
 };
 
 module.exports.configureRepo = async function (repoPath, password) {
-  await exec('git config receive.denycurrentbranch updateInstead',
-    {cwd: repoPath});
-  await exec(`git config lunchbadger.accesskey "${password}"`,
-    {cwd: repoPath});
+  const repo = await Git.Repository.open(repoPath);
+  const repoConfig = await repo.config();
+
+  await repoConfig.setString('lunchbadger.accesskey', password);
+  await repoConfig.setString('receive.denycurrentbranch', 'updateInstead');
 
   const hookPath = path.join(repoPath, '.git', 'hooks', 'post-receive');
   if (!fs.existsSync(hookPath)) {
-    fs.writeFileSync(hookPath, POST_UPDATE_HOOK, {mode: 0o775});
+    fs.writeFileSync(hookPath, POST_UPDATE_HOOK, { mode: 0o775 });
   }
 };
 
 class GitServer extends EventEmitter {
-  constructor (repoPath) {
+  constructor(repoPath) {
     super();
     this.repoPath = repoPath;
   }
 
-  getInfoRefs (req, res) {
+  getInfoRefs(req, res) {
     const service = req.query.service;
 
     if (!checkService(service, res)) {
@@ -80,10 +82,10 @@ class GitServer extends EventEmitter {
     res.write(makePacket(`# service=${service}\n`));
 
     const args = ['--stateless-rpc', '--advertise-refs'];
-    runService({allRepoPath: this.repoPath, service, args, req, res});
+    runService({ allRepoPath: this.repoPath, service, args, req, res });
   }
 
-  serviceRpc (req, res) {
+  serviceRpc(req, res) {
     const service = req.params.service;
 
     if (!checkService(service, res)) {
@@ -99,7 +101,7 @@ class GitServer extends EventEmitter {
     sendHeaders(res, `application/x-${service}-result`);
 
     const args = ['--stateless-rpc'];
-    const runOpts = {allRepoPath: this.repoPath, service, args, req, res};
+    const runOpts = { allRepoPath: this.repoPath, service, args, req, res };
 
     if (service === 'git-receive-pack') {
       args.push('-q');
@@ -139,29 +141,27 @@ class GitServer extends EventEmitter {
     runService(runOpts);
   }
 
-  checkGitAccessKey (req, username, password, done) {
+  checkGitAccessKey(req, username, password, done) {
     if (username !== 'git') {
       return done(null, false);
     }
 
     const repoPath = path.join(this.repoPath, req.params.repo);
-    exec('git config --get lunchbadger.accesskey', {cwd: repoPath},
-      (error, stdout) => {
-        if (error) {
-          console.log(error);
-          return done(new Error('failed to validate credentials'));
-        }
 
-        if (stdout.trim() !== password) {
+    Git.Repository.open(repoPath)
+      .then((repo) => Promise.all([repo, repo.config()]))
+      .then(([repo, repoConfig]) => Promise.all([repo, repoConfig.getStringBuf('lunchbadger.accesskey')]))
+      .then(([repo, accessKey]) => {
+        if (accessKey !== password) {
           return done(null, false);
         }
-
         return done(null, true);
-      });
+      })
+      .catch(done);
   }
 }
 
-function checkService (service, res) {
+function checkService(service, res) {
   if (!service) {
     res.status(400);
     res.send('Dumb protocol not supported');
@@ -177,14 +177,14 @@ function checkService (service, res) {
   return true;
 }
 
-function sendHeaders (res, contentType) {
+function sendHeaders(res, contentType) {
   res.setHeader('Expires', 'Fri, 01 Jan 1980 00:00:00 GMT');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Cache-Control', 'no-cache, max-age=0, must-revalidate');
   res.setHeader('Content-Type', contentType);
 }
 
-function makePacket (message) {
+function makePacket(message) {
   const unpadded = (message.length + 4).toString(16);
   const pad = '0000';
   const prefix = pad.substring(0, pad.length - unpadded.length) + unpadded;
@@ -192,7 +192,7 @@ function makePacket (message) {
   return `${prefix}${message}0000`;
 }
 
-function runService (opts) {
+function runService(opts) {
   let {
     allRepoPath,
     service,
@@ -237,13 +237,13 @@ function runService (opts) {
 }
 
 class PacketParser extends EventEmitter {
-  constructor () {
+  constructor() {
     super();
     this.buffer = '';
     this.ok = true;
   }
 
-  feed (chunk) {
+  feed(chunk) {
     if (!this.ok) {
       return;
     }
@@ -287,7 +287,7 @@ class PacketParser extends EventEmitter {
 }
 
 class GitServiceTee extends Transform {
-  constructor (options) {
+  constructor(options) {
     super(options);
 
     this.parser = new PacketParser();
@@ -307,7 +307,7 @@ class GitServiceTee extends Transform {
     });
   }
 
-  _transform (chunk, _encoding, callback) {
+  _transform(chunk, _encoding, callback) {
     this.parser.feed(chunk.toString('ascii'));
     callback(null, chunk);
   }

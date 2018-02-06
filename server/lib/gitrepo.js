@@ -12,7 +12,7 @@ let rimraf = Promise.promisify(require('rimraf'));
 let CustomError = require('./error').CustomError;
 let lock = require('./lock');
 
-class GitRepoError extends CustomError {}
+class GitRepoError extends CustomError { }
 class RepoDoesNotExistError extends GitRepoError {
   constructor (repoName) {
     super(`Repo "${repoName}" does not exist`);
@@ -30,7 +30,7 @@ class OperationInProgress extends GitRepoError {
 class OptimisticConcurrencyError extends GitRepoError {
   constructor (repoName, branchName) {
     super(`Branch "${branchName}" in repo "${repoName}" has changed.` +
-          'Please refresh and try again');
+      'Please refresh and try again');
     this.repoName = repoName;
     this.branchName = branchName;
   }
@@ -47,7 +47,7 @@ class InvalidBranchError extends GitRepoError {
 class FileNotFound extends GitRepoError {
   constructor (repoName, branchName, fileName) {
     super(`File "${fileName}" on branch "${branchName}" ` +
-          `in repo "${repoName}" does not exist`);
+      `in repo "${repoName}" does not exist`);
     this.repoName = repoName;
     this.branchName = branchName;
     this.fileName = fileName;
@@ -86,7 +86,7 @@ class RepoManager {
   */
   async removeAllRepos () {
     let repos = await this.getAllRepos();
-    return repos.forEach(repo => rimraf(repo.path));
+    return Promise.all(repos.map(repo => rimraf(repo.path)));
   }
 
   /**
@@ -138,7 +138,7 @@ class RepoManager {
       await fs.mkdirAsync(this.repoPath(repoName));
       await git.Repository.init(path, 0);
     }
-    return await this.getRepo(repoName);
+    return this.getRepo(repoName);
   }
 
   /**
@@ -187,7 +187,7 @@ class GitRepo {
     let committer = author;
     let commitMessage = 'Changes';
 
-    return await lock(this.lockPath, async () => {
+    return lock(this.lockPath, async () => {
       let repo = await this.repo();
 
       // Check out the given branch and return the latest commit or null
@@ -219,7 +219,7 @@ class GitRepo {
           parentCommit = await git.Commit.lookupPrefix(repo, parentRevision,
             parentRevision.length);
         } catch (err) {
-          if (err.toString().indexOf('Unable to parse OID') > 0) {
+          if (err.toString().toLowerCase().indexOf('unable to parse oid') > 0) {
             throw new OptimisticConcurrencyError(this.name, branchName);
           }
           throw err;
@@ -322,7 +322,7 @@ class GitRepo {
   }
 
   async upsertBranch (branchName, revision) {
-    return await lock(this.lockPath, async () => {
+    return lock(this.lockPath, async () => {
       let oid = await this.lookupCommit(revision);
       let repo = await this.repo();
       await repo.createBranch(branchName, oid, 1, this.sign(), 'Upsert branch');
@@ -353,7 +353,7 @@ class GitRepo {
   }
 
   async deleteBranch (branchName) {
-    return await lock(this.lockPath, async () => {
+    return lock(this.lockPath, async () => {
       let repo = await this.repo();
       let ref;
       try {
@@ -364,6 +364,11 @@ class GitRepo {
           throw new InvalidBranchError(this.name, branchName);
         }
       }
+
+      if (!ref) {
+        throw new InvalidBranchError(this.name, branchName);
+      }
+
       if (ref.isHead()) {
         repo.detachHead();
       }
@@ -373,7 +378,7 @@ class GitRepo {
   }
 
   async setConfigVariables (data) {
-    return await lock(this.lockPath, async () => {
+    return lock(this.lockPath, async () => {
       let repo = await this.repo();
       let config = await repo.config();
 
