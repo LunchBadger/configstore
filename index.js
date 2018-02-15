@@ -1,9 +1,22 @@
 const express = require('express');
 const request = require('superagent');
 const debug = require('debug')("configstore:")
+const cors = require('cors')
 const app = express();
+
+process.on('unhandledRejection', (reason, p) => {
+    console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
+    // application specific logging, throwing an error, or other logic here
+});
+
 baseUrl = require('superagent-prefix')(process.env.GIT_API_URL || 'http://localhost:8080');
 app.use(express.json());
+app.use(cors({
+    origin: true,
+    methods: ['GET', 'PUT', 'POST', 'PATCH', 'DELETE'],
+    allowedHeaders: ["Cache-Control", "Content-Type", "Accept", "Authorization", "Accept-Encoding", "Access-Control-Request-Headers", "User-Agent", "Access-Control-Request-Method", "Pragma", "Connection", "Host"],
+    credentials: true
+}))
 const prefix = process.env.REPO_PREFIX || 'customer'
 app.post('/producers', async (req, res) => {
     // 1) Ensure user exists
@@ -13,7 +26,7 @@ app.post('/producers', async (req, res) => {
     // Step 1 
     let user = await findUser(req.body.id)
     if (!user) {
-        debug(`user not found, creating ${prefix}-${req.body.id}` )
+        debug(`user not found, creating ${prefix}-${req.body.id}`)
         user = await request
             .post('/users')
             .use(baseUrl)
@@ -24,38 +37,43 @@ app.post('/producers', async (req, res) => {
                 return null
             })
     }
-    if(!user){
-        return res.status(500).json({"message": "user creation failed"})
+    if (!user) {
+        return res.status(500).json({ "message": "user creation failed" })
     }
 
+    repos = await getRepos({ prefix, name: req.body.id })
     // Step 2
-    let devRepo = await ensureRepo({repoName: "dev", prefix, name: req.body.id})
+    if (repos.every(x => x.name !== "dev")) {
+        await ensureRepo({ repoName: "dev", prefix, name: req.body.id })
+    }
 
     // Step 3
-    let fnRepo = await ensureRepo({repoName: "functions", prefix, name: req.body.id})
-
-    res.json({ id: req.body.id , user, repos:[devRepo.repo, fnRepo.repo]})
+    if (repos.every(x => x.name !== "functions")) {
+        await ensureRepo({ repoName: "functions", prefix, name: req.body.id })
+    }
+    repos = await getRepos({ prefix, name: req.body.id })
+    res.json({ id: req.body.id, user, repos })
 });
 
 app.get('/producers/:username', async (req, res) => {
     let user = await findUser(req.params.username)
-    if (!user){
+    if (!user) {
         return res.status(404).end()
     }
-    let repos = await getRepos({name:req.params.username, prefix})
+    let repos = await getRepos({ name: req.params.username, prefix })
 
-    res.json({ id: req.params.username, envs: {}, user: user.user , repos})
+    res.json({ id: req.params.username, envs: {}, user: user.user, repos })
 });
 
 app.get('/producers/', async (req, res) => {
     let users = await findUsers(prefix)
-    if (!users){
-        return res.json({users:[]})
+    if (!users) {
+        return res.json({ users: [] })
     }
-    users = users.filter(u=>u.login.indexOf(prefix+'-')>=0).map(async u=> {
-        u.name = u.login.replace(prefix+'-', "")
+    users = users.filter(u => u.login.indexOf(prefix + '-') >= 0).map(async u => {
+        u.name = u.login.replace(prefix + '-', "")
         u.namespace = prefix
-        u.repos = await getRepos({name:u.name, prefix});
+        u.repos = await getRepos({ name: u.name, prefix });
         return u
     })
     users = await Promise.all(users)
@@ -83,17 +101,18 @@ async function findUsers(prefix) {
         })
 }
 
-async function ensureRepo({name, prefix, repoName}) {
+async function ensureRepo({ name, prefix, repoName }) {
     return request
         .put(`/users/${prefix}/${name}/repos/${repoName}`)
         .use(baseUrl)
-        .then(r => r.body)
+        .then(r => { console.log(r); return r.body })
         .catch(err => {
+            debug(err)
             return null
         })
 }
 
-async function getRepos({name, prefix}) {
+async function getRepos({ name, prefix }) {
     return request
         .get(`/users/${prefix}/${name}/repos`)
         .use(baseUrl)
