@@ -31,7 +31,7 @@ app.post('/hook', (req, res) => {
   res.json({ ok: true }); // no need to hold hook connection
 
   let { ref, before, after } = req.body;
-  let [namespace, username] = req.body.repository.username.split('-');
+  let [namespace, username] = req.body.repository.owner.username.split('-');
   let payload = { ref, before, after, namespace, username };
   payload.repoName = req.body.repository.name;
   let ch = ensureChannel(username);
@@ -39,6 +39,8 @@ app.post('/hook', (req, res) => {
 });
 
 app.get('/change-stream/:user', (req, res) => {
+    console.log(req.params.user, 'subscribed')
+    
   ensureChannel(req.params.user).addClient(req, res);
 });
 app.post('/producers', async (req, res) => {
