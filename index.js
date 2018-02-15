@@ -85,4 +85,4 @@ app.all('/producers/:username/accesskey', (req, res) => {
     res.json({ key: null, message: 'NOT REQUIRED, JUST FOR BACKWARD COMPATIBILITY' })
 })
 
-app.listen(6666, () => console.log('Configstore API is running port 6666'));
+app.listen(3002, () => console.log('Configstore API is running port 3002'));
