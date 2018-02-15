@@ -34,7 +34,6 @@ app.post('/producers', async (req, res) => {
     // Step 3
     let fnRepo = await ensureRepo({repoName: "functions", prefix, name: req.body.id})
 
-    //TODO: create git user and repos  
     res.json({ id: req.body.id , user, repos:[devRepo.repo, fnRepo.repo]})
 });
 
@@ -45,9 +44,23 @@ app.get('/producers/:username', async (req, res) => {
     }
     let repos = await getRepos({name:req.params.username, prefix})
 
-    //TODO: return
-    //{"id":"circleci","envs":{"dev":"b186115877109568ab0f46388f01a0816c44e768"}}
-    res.json({ id: req.params.username, envs: {}, user: user.user , repos: repos.repos})
+    res.json({ id: req.params.username, envs: {}, user: user.user , repos})
+});
+
+app.get('/producers/', async (req, res) => {
+    let users = await findUsers(prefix)
+    if (!users){
+        return res.json({users:[]})
+    }
+    users = users.filter(u=>u.login.indexOf(prefix+'-')>=0).map(async u=> {
+        u.name = u.login.replace(prefix+'-', "")
+        u.namespace = prefix
+        u.repos = await getRepos({name:u.name, prefix});
+        return u
+    })
+    users = await Promise.all(users)
+
+    res.json(users)
 });
 
 async function findUser(name) {
@@ -55,6 +68,16 @@ async function findUser(name) {
         .get('/users/' + prefix + '/' + name)
         .use(baseUrl)
         .then(r => r.body)
+        .catch(err => {
+            return null
+        })
+}
+
+async function findUsers(prefix) {
+    return request
+        .get(`/search/users?q=${prefix}&limit=1000`)
+        .use(baseUrl)
+        .then(r => r.body.users)
         .catch(err => {
             return null
         })
@@ -74,7 +97,7 @@ async function getRepos({name, prefix}) {
     return request
         .get(`/users/${prefix}/${name}/repos`)
         .use(baseUrl)
-        .then(r => r.body)
+        .then(r => r.body.repos)
         .catch(err => {
             return null
         })
