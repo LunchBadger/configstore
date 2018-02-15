@@ -1,60 +1,27 @@
 {
   "name": "configstore",
-  "version": "0.0.12-alpha",
-  "main": "dist/server/server.js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "start": "scripts/createRepo.sh && DEBUG=configstore:* node ./server/server.js",
-    "start:test": "scripts/createRepo.sh /var/configstore/demo.git && DEBUG=configstore:* node ./server/server.js",
-    "pretest": "eslint --fix .",
-    "test": "mocha tests",
-    "posttest": "nsp check"
+    "start": "node .",
+    "lint": "eslint --fix .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "3.19.0",
+    "eslint-config-standard": "10.2.1",
+    "eslint-plugin-import": "2.3.0",
+    "eslint-plugin-markdown": "1.0.0-beta.6",
+    "eslint-plugin-node": "4.2.2",
+    "eslint-plugin-promise": "3.5.0",
+    "eslint-plugin-standard": "3.0.1",
+    "mocha": "^2.5.3"
   },
   "dependencies": {
-    "ajv": "^4.4.0",
-    "bluebird": "^3.4.1",
-    "compression": "^1.0.3",
-    "cors": "^2.5.2",
-    "fs-ext": "^0.5.0",
-    "helmet": "^1.3.0",
-    "longjohn": "^0.2.11",
-    "loopback": "^2.22.0",
-    "loopback-boot": "^2.6.5",
-    "loopback-component-explorer": "^2.4.0",
-    "loopback-datasource-juggler": "^2.39.0",
-    "mkdirp": "^0.5.1",
-    "morgan": "^1.7.0",
-    "nodegit": "^0.20.3",
-    "passport": "^0.3.2",
-    "passport-http": "^0.3.0",
-    "passport-ip": "^0.1.2",
-    "rimraf": "^2.5.2",
-    "serve-favicon": "^2.0.1"
-  },
-  "devDependencies": {
-    "chai": "^3.5.0",
-    "chai-as-promised": "^5.3.0",
-    "eslint": "^4.15.0",
-    "eslint-config-loopback": "^4.0.0",
-    "eslint-config-standard": "^11.0.0-beta.0",
-    "eslint-plugin-import": "^2.8.0",
-    "eslint-plugin-node": "^5.2.1",
-    "eslint-plugin-promise": "^3.6.0",
-    "eslint-plugin-standard": "^3.0.1",
-    "mocha": "^3.5.3",
-    "nsp": "^2.1.0",
-    "sinon": "^1.17.4",
-    "source-map-support": "^0.4.1",
-    "supertest": "^1.2.0",
-    "supertest-as-promised": "^3.1.0"
-  },
-  "repository": {
-    "type": "",
-    "url": ""
-  },
-  "files": [
-    "dist/",
-    "server/"
-  ],
-  "license": "UNLICENSED",
-  "description": "configstore"
+    "express": "^4.16.2",
+    "superagent": "^3.8.2"
+  }
 }
