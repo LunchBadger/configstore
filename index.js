@@ -32,15 +32,15 @@ app.post('/hook', (req, res) => {
 
   let { ref, before, after } = req.body;
   let [namespace, username] = req.body.repository.owner.username.split('-');
-  let payload = { ref, before, after, namespace, username };
+  let payload = { ref, before, after, namespace, username, type: 'push' };
   payload.repoName = req.body.repository.name;
   let ch = ensureChannel(username);
-  ch.send({ data: JSON.stringify(payload) });
+  debug('sending data to ', username, payload);
+  ch.send({ data: JSON.stringify(payload), event: 'data' });
 });
 
 app.get('/change-stream/:user', (req, res) => {
-    console.log(req.params.user, 'subscribed')
-    
+  debug(req.params.user, 'subscribed');
   ensureChannel(req.params.user).addClient(req, res);
 });
 app.post('/producers', async (req, res) => {
