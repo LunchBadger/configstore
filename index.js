@@ -97,6 +97,7 @@ async function createProducer (req, res) {
 
   // step 4
   registerWebHook({ prefix, producerName: username, repoName: 'dev' });
+  registerWebHook({ prefix, producerName: username, repoName: 'functions' });
   res.json({ id: username, user, repos });
 }
 
