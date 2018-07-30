@@ -41,7 +41,9 @@ app.post('/hook', (req, res) => {
   let [namespace, username] = req.body.repository.owner.username.split('-');
   let payload = { ref, before, after, namespace, username, type: 'push' };
   payload.repoName = req.body.repository.name;
-  payload.isExternal = (req.body.commits.some(x => lbCommitterNames.includes(x.committer.name)));
+  debug(req.body.commits);
+  debug(lbCommitterNames);
+  payload.isExternal = !(req.body.commits.every(x => lbCommitterNames.includes(x.committer.name)));
 
   let ch = ensureChannel(username);
   debug('sending data to ', username, payload);
