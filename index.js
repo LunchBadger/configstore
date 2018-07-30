@@ -5,6 +5,7 @@ const SseChannel = require('sse-channel');
 const cors = require('cors');
 const channels = {};
 const app = express();
+const lbCommitterNames = ['SLS API', 'LunchBadger'];
 
 process.on('unhandledRejection', (reason, p) => {
   debug('Unhandled Rejection at: Promise', p, 'reason:', reason);
@@ -40,6 +41,8 @@ app.post('/hook', (req, res) => {
   let [namespace, username] = req.body.repository.owner.username.split('-');
   let payload = { ref, before, after, namespace, username, type: 'push' };
   payload.repoName = req.body.repository.name;
+  payload.isExternal = (req.body.commits.some(x => lbCommitterNames.includes(x.committer.name)));
+
   let ch = ensureChannel(username);
   debug('sending data to ', username, payload);
   ch.send({ data: JSON.stringify(payload), event: 'data' });
