@@ -5,7 +5,8 @@ const SseChannel = require('sse-channel');
 const cors = require('cors');
 const channels = {};
 const app = express();
-const lbCommitterNames = ['SLS API', 'LunchBadger'];
+// those emails are set in Dockerfile as RUN git config --global user.email "sls-bot@lunchbadger.com"
+const lbCommitterNames = ['sls-bot@lunchbadger.com', 'support@lunchbadger.com'];
 
 process.on('unhandledRejection', (reason, p) => {
   debug('Unhandled Rejection at: Promise', p, 'reason:', reason);
@@ -43,7 +44,7 @@ app.post('/hook', (req, res) => {
   payload.repoName = req.body.repository.name;
   debug(req.body.commits);
   debug(lbCommitterNames);
-  payload.isExternal = !(req.body.commits.every(x => lbCommitterNames.includes(x.committer.name)));
+  payload.isExternal = !(req.body.commits.every(x => lbCommitterNames.includes(x.committer.email)));
 
   let ch = ensureChannel(username);
   debug('sending data to ', username, payload);
