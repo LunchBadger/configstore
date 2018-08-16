@@ -5,6 +5,8 @@ const SseChannel = require('sse-channel');
 const cors = require('cors');
 const channels = {};
 const app = express();
+// those emails are set in Dockerfile as RUN git config --global user.email "sls-bot@lunchbadger.com"
+const lbCommitterNames = ['sls-bot@lunchbadger.com', 'support@lunchbadger.com'];
 
 process.on('unhandledRejection', (reason, p) => {
   debug('Unhandled Rejection at: Promise', p, 'reason:', reason);
@@ -40,6 +42,9 @@ app.post('/hook', (req, res) => {
   let [namespace, username] = req.body.repository.owner.username.split('-');
   let payload = { ref, before, after, namespace, username, type: 'push' };
   payload.repoName = req.body.repository.name;
+  debug('Commits:', req.body.commits);
+  payload.isExternal = !(req.body.commits.every(x => lbCommitterNames.includes(x.committer.email)));
+
   let ch = ensureChannel(username);
   debug('sending data to ', username, payload);
   ch.send({ data: JSON.stringify(payload), event: 'data' });
@@ -97,6 +102,7 @@ async function createProducer (req, res) {
 
   // step 4
   registerWebHook({ prefix, producerName: username, repoName: 'dev' });
+  registerWebHook({ prefix, producerName: username, repoName: 'functions' });
   res.json({ id: username, user, repos });
 }
 
